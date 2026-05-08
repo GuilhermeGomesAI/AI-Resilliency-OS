@@ -118,15 +118,6 @@ Minuto 4: mostrar o Motor de Correlacao e o Resilience Score.
 
 Minuto 5: mostrar Plano, Backlog, Codex Lab, Relatorio Executivo e CTA do piloto.
 
-## Limites da versao 1
-
-- Nao usa IA real para correlacao.
-- Nao integra com OpenClaw, WhatsApp, GitHub, Datadog ou ServiceNow.
-- Nao acessa dados reais da Sankhya.
-- Nao executa auditoria real.
-- Nao executa pentest.
-- Nao faz scan, scraping ou enumeracao.
-- Nao substitui validacao humana ou especialistas.
 
 ## Regras de seguranca
 
