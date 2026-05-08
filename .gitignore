@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+backend/.env
+mcp/.env
+npm-debug.log*
+knowledge-base/books/*
+!knowledge-base/books/.gitkeep

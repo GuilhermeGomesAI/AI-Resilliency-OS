@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ai-resilience-os-mcp
+    env: node
+    plan: starter
+    buildCommand: ""
+    startCommand: node mcp/server.mjs --http
+    envVars:
+      - key: MCP_TRANSPORT
+        value: http
+      - key: ALLOW_ORIGIN
+        value: "*"

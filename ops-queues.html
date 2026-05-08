@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Backlog JIRA</title>
+    <style>
+      :root {
+        --bg: #071316;
+        --bg-2: #0b1c22;
+        --panel: rgba(11, 23, 31, 0.68);
+        --panel-strong: rgba(8, 18, 24, 0.84);
+        --line: rgba(192, 233, 241, 0.16);
+        --text: #dff3f7;
+        --muted: #89a9b2;
+        --accent: #58d7c4;
+        --accent-2: #80bfff;
+        --good: #49d39b;
+        --warn: #f5c45d;
+        --risk: #ff9b54;
+        --bad: #ff6f7f;
+        --shadow: 0 26px 80px rgba(0, 0, 0, 0.34);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "Segoe UI", "Inter", system-ui, sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(88, 215, 196, 0.16), transparent 26%),
+          radial-gradient(circle at 85% 15%, rgba(128, 191, 255, 0.18), transparent 20%),
+          linear-gradient(145deg, #071316 0%, #0b1a1f 46%, #091116 100%);
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+        background-size: 84px 84px;
+        opacity: .38;
+      }
+      .shell {
+        position: relative;
+        z-index: 1;
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 28px 20px 36px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(13, 25, 33, 0.54);
+        backdrop-filter: blur(20px) saturate(1.25);
+        -webkit-backdrop-filter: blur(20px) saturate(1.25);
+        box-shadow: var(--shadow);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo {
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 0 24px rgba(88, 215, 196, 0.3);
+      }
+      .brand h1, .brand p {
+        margin: 0;
+      }
+      .brand h1 {
+        font-size: 28px;
+        line-height: 1.05;
+      }
+      .brand p {
+        margin-top: 4px;
+        color: var(--muted);
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button, select, input {
+        font: inherit;
+      }
+      .btn, .field, .mini-btn {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(10, 20, 27, 0.68);
+        color: var(--text);
+      }
+      .btn {
+        padding: 11px 16px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, rgba(88,215,196,.9), rgba(128,191,255,.78));
+        color: #041015;
+        border-color: rgba(255,255,255,.22);
+      }
+      .btn:hover, .mini-btn:hover {
+        transform: translateY(-1px);
+      }
+      .field {
+        padding: 10px 12px;
+        min-width: 170px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 290px 1fr 360px;
+        gap: 18px;
+        align-items: start;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--panel);
+        backdrop-filter: blur(20px) saturate(1.22);
+        -webkit-backdrop-filter: blur(20px) saturate(1.22);
+        box-shadow: var(--shadow);
+      }
+      .sidebar, .main, .insights {
+        padding: 18px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(88,215,196,.16);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+      }
+      .sidebar h2, .main h2, .insights h2 {
+        margin: 12px 0 8px;
+        font-size: 22px;
+      }
+      .subtle {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .queue-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .queue-item {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+        text-align: left;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid transparent;
+        background: rgba(255,255,255,.02);
+        color: var(--text);
+        cursor: pointer;
+      }
+      .queue-item.active, .queue-item:hover {
+        border-color: rgba(192, 233, 241, 0.24);
+        background: rgba(200, 235, 241, 0.12);
+      }
+      .queue-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .good { background: var(--good); }
+      .warn { background: var(--warn); }
+      .risk { background: var(--risk); }
+      .bad { background: var(--bad); }
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .metric {
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(9, 18, 25, 0.72);
+      }
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .metric strong {
+        display: block;
+        margin-top: 12px;
+        font-size: 34px;
+        line-height: 1;
+      }
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .toolbar h3 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .toolbar p {
+        margin: 6px 0 0;
+        color: var(--muted);
+      }
+      .toolbar-right {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      thead th {
+        text-align: left;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        padding: 0 10px 12px;
+      }
+      tbody tr {
+        background: rgba(255,255,255,.02);
+      }
+      tbody tr + tr td {
+        border-top: 1px solid rgba(255,255,255,.06);
+      }
+      tbody td {
+        padding: 12px 10px;
+        vertical-align: top;
+      }
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(8, 18, 24, 0.6);
+      }
+      .ticket-title {
+        min-width: 220px;
+      }
+      .ticket-title strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .ticket-title small {
+        color: var(--muted);
+      }
+      .mini-field, .mini-btn {
+        width: 100%;
+        padding: 9px 10px;
+        border-radius: 12px;
+      }
+      .mini-btn {
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .pill.open { background: rgba(255,111,127,.15); color: #ffb8c1; }
+      .pill.progress { background: rgba(245,196,93,.16); color: #ffd67f; }
+      .pill.waiting { background: rgba(128,191,255,.16); color: #b8d8ff; }
+      .pill.done { background: rgba(73,211,155,.16); color: #9df1c8; }
+      .priority-critical { color: #ffb3c2; }
+      .priority-high { color: #ffc48d; }
+      .priority-medium { color: #ffe08a; }
+      .priority-low { color: #9aeccd; }
+      .insight-stack {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .insight {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(8, 18, 24, 0.68);
+      }
+      .insight strong, .insight h3 {
+        display: block;
+        margin: 0 0 8px;
+      }
+      .insight h3 {
+        font-size: 18px;
+      }
+      .insight p {
+        margin: 0;
+        color: var(--text);
+        line-height: 1.55;
+      }
+      .insight small {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+      .action-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .action {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255,255,255,.03);
+      }
+      .sector-reading {
+        margin-top: 16px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(8, 18, 24, 0.68);
+      }
+      .sector-reading h3 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+      .sector-reading-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .sector-card {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255,255,255,.03);
+      }
+      .sector-card h4 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+      .sector-card dl {
+        margin: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .sector-card dt {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .sector-card dd {
+        margin: 4px 0 0;
+        line-height: 1.5;
+      }
+      .sector-card.bad { border-color: rgba(255,111,127,.32); }
+      .sector-card.risk { border-color: rgba(255,155,84,.34); }
+      .sector-card.warn { border-color: rgba(245,196,93,.30); }
+      .sector-card.good { border-color: rgba(73,211,155,.28); }
+      .analysis-placeholder {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border: 1px dashed rgba(192, 233, 241, 0.16);
+        border-radius: 18px;
+        background: rgba(255,255,255,.02);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .analysis-placeholder strong {
+        color: var(--text);
+      }
+      .analysis-hidden {
+        display: none;
+      }
+      .plan-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .plan-card {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255,255,255,.03);
+      }
+      .plan-card h4 {
+        margin: 0 0 10px;
+        font-size: 16px;
+      }
+      .plan-card p {
+        margin: 0;
+        line-height: 1.55;
+      }
+      .action strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      @media (max-width: 1280px) {
+        .layout { grid-template-columns: 260px 1fr; }
+        .insights { grid-column: 1 / -1; }
+      }
+      @media (max-width: 920px) {
+        .layout { grid-template-columns: 1fr; }
+        .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .sector-reading-grid { grid-template-columns: 1fr; }
+        .plan-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 640px) {
+        .metric-grid { grid-template-columns: 1fr; }
+        .topbar { padding: 14px; }
+        .brand h1 { font-size: 24px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo"></span>
+          <div>
+            <h1>Backlog JIRA</h1>
+            <p>Filas operacionais estilo Jira com leitura simultanea de melhoria</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <select class="field" id="companyView">
+            <option>Empresa media</option>
+            <option>Empresa grande</option>
+            <option>Enterprise / Empresa regulada</option>
+          </select>
+          <button class="btn" id="resetData">Restaurar demo</button>
+          <button class="btn primary" id="newTicket">Nova linha</button>
+        </div>
+      </header>
+
+      <section class="layout">
+        <aside class="card sidebar">
+          <span class="eyebrow">Queues</span>
+          <h2>Visao operacional</h2>
+          <p class="subtle">Selecione uma fila para editar incidentes, requisicoes e mudancas. Os indicadores e pontos de melhoria mudam na hora.</p>
+          <div class="queue-list" id="queueList"></div>
+          <p class="footer-note">Endereco dedicado para demonstracao de operacao do cliente.</p>
+        </aside>
+
+        <main class="card main">
+          <div class="metric-grid analysis-hidden" id="metricGrid"></div>
+          <div class="toolbar">
+            <div>
+              <h3 id="queueTitle">Incidentes</h3>
+              <p id="queueSubtitle">Fila priorizada para operacao critica e backlog vivo.</p>
+            </div>
+            <div class="toolbar-right">
+              <select class="field" id="windowSelect">
+                <option>1H</option>
+                <option selected>24H</option>
+                <option>7D</option>
+                <option>30D</option>
+              </select>
+              <button class="btn primary" id="analyzeQueue">Analisar com IA</button>
+              <button class="btn" id="syncBoard">Atualizar fila</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Status</th>
+                  <th>Prioridade</th>
+                  <th>Owner</th>
+                  <th>Idade</th>
+                  <th>SLA</th>
+                  <th id="lastColumnHeader">Fila</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="ticketTable"></tbody>
+            </table>
+          </div>
+
+          <section class="analysis-placeholder" id="analysisPlaceholder">
+            Clique em <strong>Analisar com IA</strong> para gerar a leitura executiva desta fila.
+          </section>
+
+          <section class="sector-reading analysis-hidden" id="sectorReadingSection">
+            <h3>Leitura por setor</h3>
+            <p class="subtle">Cada chamado ajuda a explicar a dor, o risco e o ponto de melhoria. A leitura abaixo traduz o backlog em acoes que o cliente precisa executar para melhorar a operacao.</p>
+            <div class="sector-reading-grid" id="sectorReadingGrid"></div>
+          </section>
+        </main>
+
+        <aside class="card insights analysis-hidden" id="insightsSection">
+          <span class="eyebrow">Leitura automatica</span>
+          <h2>Analise executiva</h2>
+          <p class="subtle">A leitura nasce do estado atual da fila. Ela monta argumento, antecipa riscos ocultos e estrutura um plano em tres horizontes.</p>
+          <div class="insight-stack" id="insightStack"></div>
+          <div class="plan-grid" id="planGrid"></div>
+          <div class="action-list" id="actionList"></div>
+        </aside>
+      </section>
+    </div>
+
+    <script>
+      const storageKey = "ai-resilience-ops-queues-v1";
+      const defaultState = {
+        companyView: "Empresa media",
+        selectedQueue: "Backlog setorial",
+        window: "24H",
+        analysisReady: false,
+        queues: {
+          "Backlog setorial": {
+            subtitle: "Backlog principal com dores organizadas por setor para leitura executiva da operacao.",
+            tickets: [
+              { id: "BKL-101", sector: "Comercial", title: "Pipeline sem previsibilidade e follow-up irregular", status: "Aberto", priority: "Alta", owner: "Comercial", age: 8, slaBreached: "Sim" },
+              { id: "BKL-102", sector: "Marketing", title: "Captacao com queda de conversao e baixa qualificacao", status: "Em andamento", priority: "Alta", owner: "Marketing", age: 6, slaBreached: "Nao" },
+              { id: "BKL-103", sector: "Produto", title: "Backlog sem criterio unico de priorizacao", status: "Aguardando", priority: "Media", owner: "Produto", age: 7, slaBreached: "Sim" },
+              { id: "BKL-104", sector: "Tecnologia", title: "Incidentes recorrentes sem causa raiz fechada", status: "Aberto", priority: "Critica", owner: "Tecnologia", age: 11, slaBreached: "Sim" },
+              { id: "BKL-105", sector: "Operacoes", title: "Retrabalho alto por processo manual e handoff fraco", status: "Aberto", priority: "Alta", owner: "Operacoes", age: 9, slaBreached: "Sim" },
+              { id: "BKL-106", sector: "Financeiro", title: "Conciliacao com planilhas e visao tardia do fechamento", status: "Aguardando", priority: "Alta", owner: "Financeiro", age: 8, slaBreached: "Sim" },
+              { id: "BKL-107", sector: "RH", title: "Onboarding inconsistente e trilhas sem padrao", status: "Em andamento", priority: "Media", owner: "RH", age: 5, slaBreached: "Nao" },
+              { id: "BKL-108", sector: "Atendimento", title: "Chamados reabertos e SLA pressionado", status: "Aberto", priority: "Alta", owner: "Atendimento", age: 6, slaBreached: "Sim" },
+              { id: "BKL-109", sector: "Compras", title: "Aprovacoes lentas e fornecedores sem leitura de risco", status: "Aguardando", priority: "Media", owner: "Compras", age: 7, slaBreached: "Nao" },
+              { id: "BKL-110", sector: "Dados/BI", title: "Indicadores sem owner e dashboards inconsistentes", status: "Aberto", priority: "Alta", owner: "Dados/BI", age: 10, slaBreached: "Sim" },
+              { id: "BKL-111", sector: "Compliance basico", title: "Evidencias dispersas e rastreabilidade parcial", status: "Aguardando", priority: "Alta", owner: "Compliance", age: 9, slaBreached: "Sim" },
+              { id: "BKL-112", sector: "Seguranca da Informacao", title: "Acessos privilegiados e controles sem revisao completa", status: "Em andamento", priority: "Critica", owner: "Seguranca", age: 12, slaBreached: "Sim" }
+            ]
+          },
+          Incidentes: {
+            subtitle: "Fila priorizada para operacao critica e backlog vivo.",
+            tickets: [
+              { id: "INC-1042", title: "API de pedidos com latencia acima do normal", status: "Em andamento", priority: "Alta", owner: "Plataforma", age: 9, slaBreached: "Sim" },
+              { id: "INC-1038", title: "Erro 500 intermitente no portal do cliente", status: "Aberto", priority: "Critica", owner: "SRE", age: 14, slaBreached: "Sim" },
+              { id: "INC-1033", title: "Fila de integracao ERP atrasando resposta", status: "Aguardando", priority: "Media", owner: "Integracoes", age: 6, slaBreached: "Nao" },
+              { id: "INC-1029", title: "Alertas duplicados no monitoramento", status: "Resolvido", priority: "Baixa", owner: "Observabilidade", age: 2, slaBreached: "Nao" }
+            ]
+          },
+          Requisicoes: {
+            subtitle: "Demandas internas e externas com impacto direto no tempo de resposta.",
+            tickets: [
+              { id: "REQ-2208", title: "Liberacao de acesso para time financeiro", status: "Aguardando", priority: "Alta", owner: "IAM", age: 8, slaBreached: "Sim" },
+              { id: "REQ-2201", title: "Nova extracao para relatorio de vendas", status: "Em andamento", priority: "Media", owner: "Dados/BI", age: 4, slaBreached: "Nao" },
+              { id: "REQ-2195", title: "Criacao de dashboard de NPS", status: "Aberto", priority: "Media", owner: "Analytics", age: 5, slaBreached: "Nao" },
+              { id: "REQ-2191", title: "Ajuste de perfil de acesso em RH", status: "Resolvido", priority: "Baixa", owner: "Suporte", age: 1, slaBreached: "Nao" }
+            ]
+          },
+          Mudancas: {
+            subtitle: "Mudancas planejadas, emergenciais e pontos de governanca de release.",
+            tickets: [
+              { id: "CHG-311", title: "Deploy emergencial para correcoes no checkout", status: "Aguardando", priority: "Critica", owner: "Engenharia", age: 11, slaBreached: "Sim" },
+              { id: "CHG-304", title: "Mudanca de politica de backup", status: "Em andamento", priority: "Alta", owner: "Infraestrutura", age: 7, slaBreached: "Nao" },
+              { id: "CHG-299", title: "Atualizacao de certificados internos", status: "Aberto", priority: "Alta", owner: "Seguranca", age: 10, slaBreached: "Sim" },
+              { id: "CHG-291", title: "Ajuste de regra de aprovacao em compras", status: "Resolvido", priority: "Baixa", owner: "Aplicacoes", age: 3, slaBreached: "Nao" }
+            ]
+          },
+          "Endpoints nao compliance": {
+            subtitle: "Endpoints fora de padrao, sem evidencias suficientes ou com postura de risco acima do aceitavel.",
+            tickets: [
+              { id: "API-401", title: "Endpoint legado sem autenticacao forte", status: "Aberto", priority: "Critica", owner: "AppSec", age: 13, slaBreached: "Sim" },
+              { id: "API-388", title: "Documentacao incompleta de endpoint financeiro", status: "Aguardando", priority: "Alta", owner: "Arquitetura", age: 9, slaBreached: "Sim" },
+              { id: "API-374", title: "Contrato de resposta divergente do padrao interno", status: "Em andamento", priority: "Media", owner: "Integracoes", age: 5, slaBreached: "Nao" },
+              { id: "API-360", title: "Versionamento de rota ainda nao concluido", status: "Resolvido", priority: "Baixa", owner: "Plataforma", age: 2, slaBreached: "Nao" }
+            ]
+          },
+          "Captacao de Leads": {
+            subtitle: "Fila comercial para entrada, qualificacao e conversao inicial de oportunidades.",
+            tickets: [
+              { id: "MKT-512", title: "Leads sem retorno nas primeiras 24h", status: "Aberto", priority: "Alta", owner: "SDR", age: 6, slaBreached: "Sim" },
+              { id: "MKT-503", title: "Formulario com queda de conversao em campanha ativa", status: "Em andamento", priority: "Alta", owner: "Growth", age: 4, slaBreached: "Nao" },
+              { id: "MKT-496", title: "Lead scoring sem criterios revisados", status: "Aguardando", priority: "Media", owner: "Marketing Ops", age: 8, slaBreached: "Sim" },
+              { id: "MKT-488", title: "Integracao CRM x landing page estabilizada", status: "Resolvido", priority: "Baixa", owner: "RevOps", age: 1, slaBreached: "Nao" }
+            ]
+          },
+          "Governanca de IA": {
+            subtitle: "Fila dedicada a politicas, rastreabilidade, aprovacoes e uso seguro de IA no negocio.",
+            tickets: [
+              { id: "AIG-078", title: "Politica de uso de IA ainda nao formalizada", status: "Aberto", priority: "Critica", owner: "Governanca", age: 12, slaBreached: "Sim" },
+              { id: "AIG-071", title: "Decision log de prompts sem owner definido", status: "Aguardando", priority: "Alta", owner: "Compliance", age: 10, slaBreached: "Sim" },
+              { id: "AIG-066", title: "Checklist de revisao humana em construcao", status: "Em andamento", priority: "Media", owner: "PMO", age: 5, slaBreached: "Nao" },
+              { id: "AIG-058", title: "Treinamento inicial de times concluido", status: "Resolvido", priority: "Baixa", owner: "RH", age: 2, slaBreached: "Nao" }
+            ]
+          }
+        }
+      };
+
+      const statusMap = {
+        "Aberto": "open",
+        "Em andamento": "progress",
+        "Aguardando": "waiting",
+        "Resolvido": "done"
+      };
+
+      const priorityColor = {
+        "Critica": "priority-critical",
+        "Alta": "priority-high",
+        "Media": "priority-medium",
+        "Baixa": "priority-low"
+      };
+
+      let state = loadState();
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          const parsed = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
+          parsed.analysisReady = false;
+          if (!parsed.queues?.[parsed.selectedQueue]) parsed.selectedQueue = "Backlog setorial";
+          return parsed;
+        } catch {
+          return JSON.parse(JSON.stringify(defaultState));
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      }
+
+      function invalidateAnalysis() {
+        state.analysisReady = false;
+      }
+
+      function currentQueue() {
+        return state.queues[state.selectedQueue];
+      }
+
+      function queueSeverity(queueName) {
+        const tickets = state.queues[queueName].tickets;
+        const breaches = tickets.filter((ticket) => ticket.slaBreached === "Sim").length;
+        const critical = tickets.filter((ticket) => ticket.priority === "Critica").length;
+        const backlog = tickets.filter((ticket) => ticket.status !== "Resolvido").length;
+        const pressure = breaches * 2 + critical * 2 + backlog;
+        if (pressure >= 11) return "bad";
+        if (pressure >= 8) return "risk";
+        if (pressure >= 5) return "warn";
+        return "good";
+      }
+
+      function queueCounts(queueName) {
+        const tickets = state.queues[queueName].tickets;
+        const open = tickets.filter((ticket) => ticket.status !== "Resolvido").length;
+        const breached = tickets.filter((ticket) => ticket.slaBreached === "Sim").length;
+        return { open, breached, total: tickets.length };
+      }
+
+      function sectorImprovement(sector, ticket) {
+        const map = {
+          "Comercial": "Padronizar cadencia comercial, revisao de pipeline e ownership de follow-up.",
+          "Marketing": "Ajustar criterios de qualificacao, origem dos leads e taxa de conversao por campanha.",
+          "Produto": "Criar criterio unico de priorizacao e ligar backlog a impacto real no negocio.",
+          "Tecnologia": "Fechar causa raiz, reduzir recorrencia e reforcar observabilidade por servico.",
+          "Operacoes": "Reduzir handoff, formalizar processo e eliminar etapas manuais repetitivas.",
+          "Financeiro": "Automatizar conciliacao, padronizar indicadores e reduzir dependencia de planilhas.",
+          "RH": "Estruturar trilhas e checkpoints claros para onboarding e capacitacao.",
+          "Atendimento": "Revisar triagem, base de resposta e rotina de acompanhamento para reabertura.",
+          "Compras": "Acelerar aprovacao, classificar risco de fornecedor e reduzir gargalos de decisao.",
+          "Dados/BI": "Definir owner de indicador, reconciliar fontes e estabilizar dashboards executivos.",
+          "Compliance basico": "Centralizar evidencias, criar log unico e reforcar rastreabilidade de decisao.",
+          "Seguranca da Informacao": "Revisar acessos, reforcar controles e manter rotina de validacao critica.",
+          "Governanca": "Formalizar politica, dono e checkpoints de aprovacao.",
+          "Compliance": "Unificar evidencias e regra de revisao.",
+          "Seguranca": "Fechar exposicao critica com owner e prazo."
+        };
+        return map[sector] || `Melhorar ownership, visibilidade e rotina de controle para ${sector || ticket.owner}.`;
+      }
+
+      function sectorRisk(ticket) {
+        if (ticket.priority === "Critica" || (ticket.slaBreached === "Sim" && Number(ticket.age) >= 8)) {
+          return "Risco alto de impacto operacional, atraso de resposta e perda de controle sobre o fluxo.";
+        }
+        if (ticket.slaBreached === "Sim" || ticket.status === "Aguardando") {
+          return "Risco moderado de acúmulo de backlog, percepção ruim do cliente e decisão lenta.";
+        }
+        return "Risco controlado, mas exige acompanhamento para evitar recorrência.";
+      }
+
+      function sectorAction(sector, ticket) {
+        const owner = ticket.owner || sector || "time responsável";
+        if (ticket.priority === "Critica") {
+          return `Definir um owner único em ${owner}, criar checkpoint diário e fechar critério de aceite antes do próximo ciclo.`;
+        }
+        if (ticket.slaBreached === "Sim") {
+          return `Repriorizar esta frente com ${owner}, atacar itens acima do SLA e revisar capacidade nas próximas 24H.`;
+        }
+        if (ticket.status === "Aguardando") {
+          return `Separar bloqueio real de fila parada, cobrando decisão objetiva do ${owner}.`;
+        }
+        return `Manter monitoramento, reduzir variabilidade do processo e formalizar a rotina do ${owner}.`;
+      }
+
+      function buildExecutiveNarrative() {
+        const tickets = currentQueue().tickets;
+        const backlog = tickets.filter((ticket) => ticket.status !== "Resolvido");
+        const breached = tickets.filter((ticket) => ticket.slaBreached === "Sim");
+        const critical = tickets.filter((ticket) => ticket.priority === "Critica");
+        const waiting = tickets.filter((ticket) => ticket.status === "Aguardando");
+        const avgAge = backlog.length ? Math.round(backlog.reduce((sum, ticket) => sum + Number(ticket.age || 0), 0) / backlog.length) : 0;
+        const dominant = [...tickets]
+          .sort((a, b) => ((b.priority === "Critica") - (a.priority === "Critica")) || ((b.slaBreached === "Sim") - (a.slaBreached === "Sim")) || (Number(b.age) - Number(a.age)))[0];
+        const dominantSector = dominant?.sector || dominant?.owner || state.selectedQueue;
+        const dominantPain = dominant?.title || "fila ainda sem dor predominante";
+
+        const hiddenRisks = [];
+        if (waiting.length >= 2) hiddenRisks.push("decisao represada entre areas");
+        if (avgAge >= 7) hiddenRisks.push("atraso virando rotina");
+        if (breached.length >= 2) hiddenRisks.push("perda silenciosa de confianca");
+        if (critical.length >= 1) hiddenRisks.push("operacao dependente de excecao");
+        if (!hiddenRisks.length) hiddenRisks.push("variacao operacional sem owner claro");
+
+        return {
+          headline: `${dominantSector} concentra a leitura mais sensivel da fila atual`,
+          summary: `Ativos: ${backlog.length}. SLA: ${breached.length}. Idade media: ${avgAge}d. Sinal: ${dominantPain}.`,
+          hiddenRisks,
+          plans: [
+            {
+              title: "Curto prazo",
+              body: `Atacar SLA e idade. Nomear owner unico para ${dominantSector} e fechar criterio de aceite.`
+            },
+            {
+              title: "Medio prazo",
+              body: `Padronizar triagem, handoff, prioridade e metrica semanal de recorrencia.`
+            },
+            {
+              title: "Longo prazo",
+              body: `Criar governanca por setor, visibilidade executiva e prevencao de recorrencia.`
+            }
+          ]
+        };
+      }
+
+      function renderQueues() {
+        const container = document.getElementById("queueList");
+        container.innerHTML = Object.keys(state.queues).map((queueName) => {
+          const counts = queueCounts(queueName);
+          const severity = queueSeverity(queueName);
+          return `
+            <button class="queue-item ${queueName === state.selectedQueue ? "active" : ""}" data-queue="${queueName}">
+              <div>
+                <strong>${queueName}</strong>
+                <div class="queue-meta">
+                  <span class="dot ${severity}"></span>
+                  <span>${counts.open} ativos</span>
+                  <span>${counts.breached} em SLA</span>
+                </div>
+              </div>
+              <span>${counts.total}</span>
+            </button>
+          `;
+        }).join("");
+
+        container.querySelectorAll(".queue-item").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedQueue = button.dataset.queue;
+            invalidateAnalysis();
+            saveState();
+            render();
+          });
+        });
+      }
+
+      function renderMetrics() {
+        const tickets = currentQueue().tickets;
+        const open = tickets.filter((ticket) => ticket.status !== "Resolvido").length;
+        const breached = tickets.filter((ticket) => ticket.slaBreached === "Sim").length;
+        const critical = tickets.filter((ticket) => ticket.priority === "Critica").length;
+        const avgAge = tickets.length ? Math.round(tickets.reduce((sum, ticket) => sum + Number(ticket.age || 0), 0) / tickets.length) : 0;
+        const health = Math.max(22, Math.min(94, 88 - breached * 7 - critical * 5 - Math.max(0, open - 2) * 3));
+
+        document.getElementById("metricGrid").innerHTML = `
+          <div class="metric"><span>Health score</span><strong>${health}</strong></div>
+          <div class="metric"><span>Tickets ativos</span><strong>${open}</strong></div>
+          <div class="metric"><span>SLA estourado</span><strong>${breached}</strong></div>
+          <div class="metric"><span>Idade media</span><strong>${avgAge}d</strong></div>
+        `;
+      }
+
+      function renderTickets() {
+        const queue = currentQueue();
+        document.getElementById("queueTitle").textContent = state.selectedQueue;
+        document.getElementById("queueSubtitle").textContent = queue.subtitle;
+        document.getElementById("lastColumnHeader").textContent = state.selectedQueue === "Backlog setorial" ? "Setor" : "Fila";
+        document.getElementById("ticketTable").innerHTML = queue.tickets.map((ticket, index) => `
+          <tr>
+            <td class="ticket-title">
+              <strong>${ticket.id}</strong>
+              <small>${ticket.title}</small>
+            </td>
+            <td>
+              <select class="mini-field" data-field="status" data-index="${index}">
+                ${["Aberto", "Em andamento", "Aguardando", "Resolvido"].map((value) => `<option ${ticket.status === value ? "selected" : ""}>${value}</option>`).join("")}
+              </select>
+            </td>
+            <td>
+              <select class="mini-field ${priorityColor[ticket.priority] || ""}" data-field="priority" data-index="${index}">
+                ${["Critica", "Alta", "Media", "Baixa"].map((value) => `<option ${ticket.priority === value ? "selected" : ""}>${value}</option>`).join("")}
+              </select>
+            </td>
+            <td><input class="mini-field" data-field="owner" data-index="${index}" value="${ticket.owner}" /></td>
+            <td><input class="mini-field" data-field="age" data-index="${index}" type="number" min="0" value="${ticket.age}" /></td>
+            <td>
+              <select class="mini-field" data-field="slaBreached" data-index="${index}">
+                ${["Sim", "Nao"].map((value) => `<option ${ticket.slaBreached === value ? "selected" : ""}>${value}</option>`).join("")}
+              </select>
+            </td>
+            <td><span class="pill ${state.selectedQueue === "Backlog setorial" ? "waiting" : statusMap[ticket.status]}">${ticket.sector || state.selectedQueue}</span></td>
+            <td><button class="mini-btn" data-remove="${index}">Excluir</button></td>
+          </tr>
+        `).join("");
+
+        document.querySelectorAll("[data-field]").forEach((field) => {
+          field.addEventListener("change", (event) => {
+            const index = Number(event.target.dataset.index);
+            const key = event.target.dataset.field;
+            currentQueue().tickets[index][key] = key === "age" ? Number(event.target.value || 0) : event.target.value;
+            invalidateAnalysis();
+            saveState();
+            render();
+          });
+        });
+
+        document.querySelectorAll("[data-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentQueue().tickets.splice(Number(button.dataset.remove), 1);
+            invalidateAnalysis();
+            saveState();
+            render();
+          });
+        });
+      }
+
+      function renderSectorReadings() {
+        const tickets = currentQueue().tickets;
+        const grouped = new Map();
+
+        tickets.forEach((ticket) => {
+          const key = ticket.sector || ticket.owner || state.selectedQueue;
+          const existing = grouped.get(key);
+          if (!existing) {
+            grouped.set(key, ticket);
+            return;
+          }
+          const existingWeight = (existing.priority === "Critica" ? 4 : existing.priority === "Alta" ? 3 : existing.priority === "Media" ? 2 : 1) + (existing.slaBreached === "Sim" ? 2 : 0) + Number(existing.age || 0) / 10;
+          const currentWeight = (ticket.priority === "Critica" ? 4 : ticket.priority === "Alta" ? 3 : ticket.priority === "Media" ? 2 : 1) + (ticket.slaBreached === "Sim" ? 2 : 0) + Number(ticket.age || 0) / 10;
+          if (currentWeight > existingWeight) grouped.set(key, ticket);
+        });
+
+        document.getElementById("sectorReadingGrid").innerHTML = Array.from(grouped.entries()).map(([sector, ticket]) => {
+          const severity = ticket.priority === "Critica" ? "bad" : ticket.slaBreached === "Sim" ? "risk" : ticket.status === "Aguardando" ? "warn" : "good";
+          return `
+            <article class="sector-card ${severity}">
+              <h4>${sector}</h4>
+              <dl>
+                <div>
+                  <dt>Dor</dt>
+                  <dd>${ticket.title}</dd>
+                </div>
+                <div>
+                  <dt>Ponto de melhoria</dt>
+                  <dd>${sectorImprovement(sector, ticket)}</dd>
+                </div>
+                <div>
+                  <dt>Risco</dt>
+                  <dd>${sectorRisk(ticket)}</dd>
+                </div>
+                <div>
+                  <dt>O que o cliente precisa fazer</dt>
+                  <dd>${sectorAction(sector, ticket)}</dd>
+                </div>
+              </dl>
+            </article>
+          `;
+        }).join("");
+      }
+
+      function buildInsights() {
+        const tickets = currentQueue().tickets;
+        const backlog = tickets.filter((ticket) => ticket.status !== "Resolvido");
+        const breached = tickets.filter((ticket) => ticket.slaBreached === "Sim");
+        const waiting = tickets.filter((ticket) => ticket.status === "Aguardando");
+        const critical = tickets.filter((ticket) => ticket.priority === "Critica");
+        const avgAge = backlog.length ? Math.round(backlog.reduce((sum, ticket) => sum + Number(ticket.age || 0), 0) / backlog.length) : 0;
+        const changeEmergency = state.queues.Mudancas.tickets.filter((ticket) => ticket.priority === "Critica" && ticket.status !== "Resolvido").length;
+
+        const insights = [];
+        const actions = [];
+
+        if (breached.length >= 2) {
+          insights.push({
+            title: "SLA pressionado",
+            body: `${breached.length} itens estouraram SLA na fila ${state.selectedQueue}. O ponto de melhoria e reduzir esperas longas e criar triagem por prioridade.`,
+            note: "Origem: leitura simultanea das linhas com SLA = Sim."
+          });
+          actions.push("Criar triagem automatica para itens com SLA estourado e reordenar owner nas proximas 24H.");
+        }
+
+        if (waiting.length >= 2) {
+          insights.push({
+            title: "Fila aguardando demais",
+            body: `${waiting.length} tickets estao em espera. Isso costuma indicar dependencia externa, aprovacao travada ou owner sem capacidade alocada.`,
+            note: "Ponto de melhoria: separar bloqueio real de falta de resposta interna."
+          });
+          actions.push("Abrir coluna de bloqueios e revisar owners sem resposta ao menos duas vezes ao dia.");
+        }
+
+        if (critical.length >= 1) {
+          insights.push({
+            title: "Carga critica aberta",
+            body: `${critical.length} item(ns) critico(s) ainda estao ativos. Vale isolar o fluxo critico com ritual de acompanhamento e dono unico.`,
+            note: "Melhoria sugerida: reduzir dispersao de ownership em tickets criticos."
+          });
+          actions.push("Criar owner unico para incidentes ou mudancas criticas e registrar criterio de aceite antes do fechamento.");
+        }
+
+        if (avgAge >= 7) {
+          insights.push({
+            title: "Envelhecimento de backlog",
+            body: `A idade media ativa esta em ${avgAge} dias. Isso sugere gargalo estrutural, nao apenas pico momentaneo.`,
+            note: "Melhoria sugerida: quebrar itens longos em etapas menores com prazo visivel."
+          });
+          actions.push("Dividir tickets acima de 7 dias em subtarefas com checkpoint e data realista.");
+        }
+
+        if (changeEmergency >= 2) {
+          insights.push({
+            title: "Mudancas emergenciais demais",
+            body: "A fila de mudancas mostra alto volume de ajustes criticos ativos. Isso costuma sinalizar release governance fraca ou backlog tecnico represado.",
+            note: "Vale reforcar janela de aprovacao e criterios de rollback."
+          });
+          actions.push("Criar leitura semanal de mudancas emergenciais versus planejadas e revisar rollback.");
+        }
+
+        if (!insights.length) {
+          insights.push({
+            title: "Operacao sob controle",
+            body: "A fila atual nao mostra pressao relevante. O melhor uso desta tela e simular piora ou melhora mexendo em SLA, status e idade dos itens.",
+            note: "Use esta pagina para demonstrar o poder da leitura em tempo real."
+          });
+          actions.push("Manter revisao diaria por fila e preservar a cadencia de limpeza de backlog.");
+        }
+
+        return { insights, actions: Array.from(new Set(actions)).slice(0, 4) };
+      }
+
+      function renderAnalysisVisibility() {
+        const metricGrid = document.getElementById("metricGrid");
+        const placeholder = document.getElementById("analysisPlaceholder");
+        const sectorSection = document.getElementById("sectorReadingSection");
+        const insightsSection = document.getElementById("insightsSection");
+        if (state.analysisReady) {
+          metricGrid.classList.remove("analysis-hidden");
+          placeholder.classList.add("analysis-hidden");
+          sectorSection.classList.remove("analysis-hidden");
+          insightsSection.classList.remove("analysis-hidden");
+        } else {
+          metricGrid.classList.add("analysis-hidden");
+          placeholder.classList.remove("analysis-hidden");
+          sectorSection.classList.add("analysis-hidden");
+          insightsSection.classList.add("analysis-hidden");
+        }
+      }
+
+      function renderInsights() {
+        const result = buildInsights();
+        const queue = currentQueue();
+        const active = queue.tickets.filter((ticket) => ticket.status !== "Resolvido").length;
+        const riskQueue = queue.tickets.filter((ticket) => ticket.slaBreached === "Sim").length;
+        const executive = buildExecutiveNarrative();
+
+        document.getElementById("insightStack").innerHTML = `
+          <section class="insight">
+            <h3>${executive.headline}</h3>
+            <p>${executive.summary}</p>
+            <small>Risco antecipado: ${executive.hiddenRisks.slice(0, 2).join("; ")}.</small>
+            <div class="summary-row">
+              <span>Ativos: ${active}</span>
+              <span>SLA: ${riskQueue}</span>
+              <span>Janela: ${state.window}</span>
+            </div>
+          </section>
+        ` + result.insights.map((item) => `
+          <section class="insight">
+            <h3>${item.title}</h3>
+            <p>${item.body}</p>
+            <small>${item.note}</small>
+            <div class="summary-row">
+              <span>Ativos: ${active}</span>
+              <span>SLA: ${riskQueue}</span>
+              <span>Janela: ${state.window}</span>
+            </div>
+          </section>
+        `).join("");
+
+        document.getElementById("planGrid").innerHTML = executive.plans.map((item) => `
+          <article class="plan-card">
+            <h4>${item.title}</h4>
+            <p>${item.body}</p>
+          </article>
+        `).join("");
+
+        document.getElementById("actionList").innerHTML = result.actions.map((text, index) => `
+          <div class="action">
+            <strong>Melhoria ${index + 1}</strong>
+            <span>${text}</span>
+          </div>
+        `).join("");
+      }
+
+      function render() {
+        document.getElementById("companyView").value = state.companyView;
+        document.getElementById("windowSelect").value = state.window;
+        renderQueues();
+        renderMetrics();
+        renderTickets();
+        renderAnalysisVisibility();
+        if (state.analysisReady) {
+          renderSectorReadings();
+          renderInsights();
+        }
+      }
+
+      document.getElementById("companyView").addEventListener("change", (event) => {
+        state.companyView = event.target.value;
+        invalidateAnalysis();
+        saveState();
+        render();
+      });
+
+      document.getElementById("windowSelect").addEventListener("change", (event) => {
+        state.window = event.target.value;
+        invalidateAnalysis();
+        saveState();
+        render();
+      });
+
+      document.getElementById("analyzeQueue").addEventListener("click", () => {
+        state.analysisReady = true;
+        saveState();
+        render();
+      });
+
+      document.getElementById("syncBoard").addEventListener("click", () => {
+        invalidateAnalysis();
+        saveState();
+        render();
+      });
+
+      document.getElementById("resetData").addEventListener("click", () => {
+        state = JSON.parse(JSON.stringify(defaultState));
+        saveState();
+        render();
+      });
+
+      document.getElementById("newTicket").addEventListener("click", () => {
+        const prefixMap = {
+          "Backlog setorial": "BKL",
+          "Incidentes": "INC",
+          "Requisicoes": "REQ",
+          "Mudancas": "CHG",
+          "Endpoints nao compliance": "API",
+          "Captacao de Leads": "MKT",
+          "Governanca de IA": "AIG"
+        };
+        const prefix = prefixMap[state.selectedQueue] || "OPS";
+        const tickets = currentQueue().tickets;
+        tickets.unshift({
+          id: `${prefix}-${Math.floor(Math.random() * 900 + 100)}`,
+          title: "Novo item para simulacao ao vivo",
+          status: "Aberto",
+          priority: "Media",
+          owner: "Operacoes",
+          age: 0,
+          slaBreached: "Nao"
+        });
+        invalidateAnalysis();
+        saveState();
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

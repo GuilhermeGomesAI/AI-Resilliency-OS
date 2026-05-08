@@ -1,0 +1,3195 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Resilience OS - Demo Standalone</title>
+    <style>
+      :root {
+        --ink: #edf7f5;
+        --paper: #071412;
+        --panel: #0c211f;
+        --panel-2: #102b28;
+        --line: #24413d;
+        --signal: #35d399;
+        --signal-2: #38bdf8;
+        --audit: #f4c95d;
+        --success: #35d399;
+        --warning: #f4c95d;
+        --danger: #ef6f6c;
+        --text: #b6cbc6;
+        --muted: #82a39c;
+        --sidebar: #081b19;
+      }
+      body[data-interface="moderna"] header,
+      body[data-interface="moderna"] .panel,
+      body[data-interface="moderna"] .modal-card,
+      body[data-interface="moderna"] .profile-dropdown,
+      body[data-interface="moderna"] .adaptive-dashboard,
+      body[data-interface="moderna"] .sector-sidebar,
+      body[data-interface="moderna"] .chart-panel,
+      body[data-interface="moderna"] .dark-card,
+      body[data-interface="moderna"] .analysis-panel,
+      body[data-interface="moderna"] .health-card {
+        background: rgba(9, 22, 29, .54);
+        border-color: rgba(226, 248, 255, .22);
+        backdrop-filter: blur(18px) saturate(1.35);
+        -webkit-backdrop-filter: blur(18px) saturate(1.35);
+        box-shadow: 0 24px 80px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.13);
+      }
+      body[data-interface="moderna"] .sector-button.active,
+      body[data-interface="moderna"] .sector-button:hover,
+      body[data-interface="moderna"] .profile-item:hover {
+        background: rgba(226,248,255,.16);
+        border-color: rgba(226,248,255,.34);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+      }
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+      body::before {
+        z-index: 0;
+        background:
+          linear-gradient(90deg, rgba(53,211,153,.34) 0, transparent 5px),
+          linear-gradient(180deg, rgba(7,20,18,.58), rgba(7,20,18,.88)),
+          radial-gradient(circle at 20% 22%, rgba(56,189,248,.22), transparent 32%),
+          url("https://assets.science.nasa.gov/dynamicimage/assets/science/missions/webb/science/2022/07/STScI-01G8H15R2PGEXQD7TYYBFJ3FT4.png?fit=clip&w=1800");
+        background-size: auto, auto, auto, 120%;
+        background-position: left top, center, center, center;
+        filter: saturate(1.06) contrast(1.08);
+        opacity: .58;
+        animation: cosmicDrift 34s ease-in-out infinite alternate;
+      }
+      body::after {
+        z-index: 0;
+        background:
+          linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+          radial-gradient(circle at 12% 35%, rgba(53,211,153,.34) 0 1px, transparent 2px),
+          radial-gradient(circle at 72% 18%, rgba(56,189,248,.32) 0 1px, transparent 2px),
+          radial-gradient(circle at 82% 72%, rgba(244,201,93,.28) 0 1px, transparent 2px);
+        background-size: 112px 112px, 112px 112px, 160px 160px, 190px 190px, 230px 230px;
+        mix-blend-mode: screen;
+        opacity: .42;
+        animation: dataSweep 18s linear infinite;
+      }
+      body > * {
+        position: relative;
+        z-index: 1;
+      }
+      @keyframes cosmicDrift {
+        from { background-position: left top, center, center, 50% 50%; background-size: auto, auto, auto, 118%; }
+        to { background-position: left top, center, center, 58% 46%; background-size: auto, auto, auto, 128%; }
+      }
+      @keyframes dataSweep {
+        from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+        to { background-position: 112px 112px, 112px 112px, 160px 80px, -190px 190px, 230px -120px; }
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(7,20,18,.96);
+        border-bottom: 1px solid #183630;
+      }
+      .visual-credit {
+        position: fixed;
+        right: 14px;
+        bottom: 10px;
+        z-index: 2;
+        color: rgba(237,247,245,.45);
+        font-size: 11px;
+        letter-spacing: 0;
+        pointer-events: none;
+      }
+      .login-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at 50% 22%, rgba(53,211,153,.18), transparent 30%),
+          radial-gradient(circle at 12% 80%, rgba(56,189,248,.12), transparent 28%),
+          linear-gradient(180deg, #061412 0%, #071412 58%, #020807 100%);
+      }
+      .login-screen::before,
+      .login-screen::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .login-screen::before {
+        background:
+          linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+        background-size: 92px 92px;
+        mask-image: radial-gradient(circle at center, black 0, transparent 72%);
+      }
+      .login-screen::after {
+        background:
+          linear-gradient(90deg, transparent, rgba(53,211,153,.18), transparent),
+          radial-gradient(circle at 50% 50%, transparent 0 45%, rgba(0,0,0,.42) 78%);
+        opacity: .68;
+      }
+      .login-screen.hidden {
+        display: none;
+      }
+      body.public-mode header,
+      body.public-mode .app-shell {
+        display: none;
+      }
+      .sales-screen {
+        position: relative;
+        z-index: 40;
+        min-height: 100vh;
+        padding: 32px 0 70px;
+      }
+      .sales-screen.hidden {
+        display: none;
+      }
+      .sales-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .sales-menu {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .sales-menu button,
+      .sales-menu a {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        text-decoration: none;
+        font-weight: inherit;
+      }
+      .mega-panel {
+        position: absolute;
+        left: 50%;
+        top: 78px;
+        z-index: 42;
+        transform: translateX(-50%) translateY(-8px);
+        width: min(1120px, calc(100vw - 40px));
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(12,33,31,.98);
+        box-shadow: 0 28px 90px rgba(0,0,0,.44);
+        padding: 22px;
+        display: none;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .mega-panel.open {
+        display: grid;
+      }
+      .mega-column {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        background: rgba(255,255,255,.035);
+      }
+      .mega-column h3 {
+        margin: 0 0 8px;
+      }
+      .mega-column ul {
+        padding-left: 18px;
+        margin: 12px 0 0;
+      }
+      .search-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: none;
+        place-items: start center;
+        padding: 100px 24px;
+        background: rgba(2,8,7,.78);
+        backdrop-filter: blur(12px);
+      }
+      .search-overlay.open {
+        display: grid;
+      }
+      .search-box {
+        width: min(760px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(12,33,31,.98);
+        padding: 22px;
+        box-shadow: 0 30px 100px rgba(0,0,0,.5);
+      }
+      .search-box input {
+        width: 100%;
+        min-height: 56px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #061412;
+        color: var(--ink);
+        padding: 14px 16px;
+        font-size: 18px;
+      }
+      .search-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .sales-hero {
+        max-width: 1180px;
+        margin: 80px auto 0;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: 1.05fr .95fr;
+        gap: 34px;
+        align-items: center;
+      }
+      .sales-copy h1 {
+        font-size: clamp(40px, 6vw, 78px);
+        line-height: 1.02;
+        max-width: 850px;
+        margin: 14px 0 22px;
+      }
+      .sales-copy p {
+        max-width: 680px;
+        font-size: 19px;
+      }
+      .sales-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+      .sales-visual {
+        min-height: 430px;
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        background: rgba(2,8,7,.58);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0,0,0,.28);
+      }
+      .sales-visual::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 50% 48%, rgba(91,141,255,.22), transparent 42%),
+          linear-gradient(180deg, rgba(2,8,7,.08), rgba(2,8,7,.46));
+        z-index: 1;
+        pointer-events: none;
+      }
+      .sales-visual::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: min(64%, 460px);
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 1px solid rgba(91,141,255,.22);
+        box-shadow: 0 0 90px rgba(91,141,255,.28);
+        animation: neuralHalo 8s ease-in-out infinite alternate;
+        z-index: 2;
+        pointer-events: none;
+      }
+      .sales-neural-art {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        opacity: .88;
+        filter: saturate(1.05) contrast(1.08);
+        animation: neuralSalesDance 12s ease-in-out infinite alternate;
+      }
+      .sales-visual .sales-neural-art {
+        object-fit: contain;
+        padding: 18px;
+      }
+      @keyframes neuralSalesDance {
+        from { transform: scale(1.01) translate3d(-8px, -6px, 0); }
+        to { transform: scale(1.06) translate3d(8px, 7px, 0); }
+      }
+      @keyframes neuralHalo {
+        from { opacity: .28; transform: translate(-50%, -50%) scale(.96); }
+        to { opacity: .54; transform: translate(-50%, -50%) scale(1.04); }
+      }
+      .proof-grid {
+        max-width: 1180px;
+        margin: 48px auto 0;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .sales-journey {
+        max-width: 1180px;
+        margin: 74px auto 0;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 380px;
+        gap: 28px;
+        align-items: start;
+      }
+      .journey-copy h2 {
+        max-width: 760px;
+        font-size: clamp(32px, 4vw, 56px);
+        line-height: 1.08;
+        margin: 0 0 18px;
+      }
+      .journey-card {
+        min-height: 220px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(12,33,31,.72);
+        padding: 24px;
+        margin-bottom: 18px;
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 18px;
+        align-items: start;
+      }
+      .journey-number {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(53,211,153,.48);
+        color: var(--signal);
+        font-weight: 900;
+        box-shadow: 0 0 30px rgba(53,211,153,.15);
+      }
+      .journey-card h3 {
+        margin: 0 0 8px;
+        color: var(--ink);
+        font-size: 22px;
+      }
+      .sales-ai-guide {
+        position: sticky;
+        top: 96px;
+        min-height: 520px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(53,211,153,.18), transparent 35%),
+          linear-gradient(180deg, rgba(12,33,31,.86), rgba(8,27,25,.76));
+        overflow: hidden;
+        box-shadow: 0 28px 90px rgba(0,0,0,.28);
+      }
+      .sales-ai-guide::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 0;
+        border: 0;
+        background:
+          radial-gradient(circle at 50% 34%, rgba(91,141,255,.2), transparent 38%),
+          linear-gradient(180deg, rgba(2,8,7,.04), rgba(2,8,7,.76) 66%);
+        z-index: 1;
+        pointer-events: none;
+      }
+      .sales-ai-guide::after {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        left: calc(50% - 90px + var(--dance-x, 0px));
+        top: calc(27% - 90px + var(--dance-y, 0px));
+        border: 1px solid rgba(91,141,255,.22);
+        box-shadow: 0 0 80px rgba(91,141,255,.28), inset 0 0 60px rgba(91,141,255,.12);
+        z-index: 2;
+        transition: left .8s ease, top .8s ease, transform .8s ease;
+        transform: rotate(var(--dance-angle, 0deg));
+      }
+      .sales-ai-guide .sales-neural-art {
+        height: 64%;
+        object-fit: cover;
+        opacity: .82;
+      }
+      @keyframes gracefulOrbit {
+        from { transform: rotate(0deg) scale(.98); }
+        to { transform: rotate(360deg) scale(1.02); }
+      }
+      .guide-content {
+        position: absolute;
+        left: 24px;
+        right: 24px;
+        bottom: 24px;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 18px;
+        background: rgba(7,20,18,.72);
+        padding: 18px;
+        backdrop-filter: blur(14px);
+        z-index: 3;
+      }
+      .guide-content h3 {
+        margin: 8px 0;
+        font-size: 24px;
+      }
+      .guide-content p {
+        margin-bottom: 0;
+      }
+      .guide-ribbon {
+        position: absolute;
+        inset: auto 24px 190px 24px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--signal), var(--signal-2), transparent);
+        opacity: .72;
+        transform: translateY(var(--ribbon-y, 0px));
+        transition: transform .8s ease;
+        z-index: 3;
+      }
+      .sales-decision {
+        max-width: 1180px;
+        margin: 72px auto 0;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .decision-card {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(12,33,31,.72);
+        padding: 22px;
+      }
+      .decision-card h3 {
+        color: var(--ink);
+        margin: 8px 0;
+      }
+      .proof-card {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(12,33,31,.72);
+        padding: 18px;
+      }
+      .proof-card strong {
+        display: block;
+        color: var(--ink);
+        font-size: 30px;
+        margin-bottom: 4px;
+      }
+      .client-strip {
+        margin-top: 72px;
+        overflow: hidden;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: rgba(7,20,18,.62);
+        padding: 34px 0;
+      }
+      .sales-section {
+        max-width: 1180px;
+        margin: 78px auto 0;
+        padding: 0 24px;
+      }
+      .section-head {
+        max-width: 820px;
+        margin-bottom: 24px;
+      }
+      .section-head h2 {
+        font-size: clamp(32px, 4vw, 54px);
+        line-height: 1.08;
+        margin: 8px 0 12px;
+      }
+      .solution-grid,
+      .content-grid,
+      .events-grid,
+      .news-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .content-grid,
+      .events-grid,
+      .news-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .sales-card {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(12,33,31,.72);
+        padding: 22px;
+        transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease;
+      }
+      .sales-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(53,211,153,.58);
+        box-shadow: 0 18px 50px rgba(0,0,0,.26);
+      }
+      .card-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: rgba(53,211,153,.13);
+        color: var(--signal);
+        font-weight: 900;
+        margin-bottom: 14px;
+      }
+      .comparison {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 16px;
+        align-items: stretch;
+      }
+      .evolution-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--signal);
+        font-size: 42px;
+      }
+      .tour-shell {
+        display: grid;
+        grid-template-columns: 1.2fr .8fr;
+        gap: 18px;
+        align-items: stretch;
+      }
+      .platform-mock {
+        min-height: 420px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background:
+          linear-gradient(90deg, rgba(255,255,255,.04) 0 210px, transparent 210px),
+          radial-gradient(circle at 74% 22%, rgba(56,189,248,.16), transparent 30%),
+          rgba(12,33,31,.78);
+        position: relative;
+        overflow: hidden;
+      }
+      .mock-line {
+        position: absolute;
+        left: 240px;
+        right: 30px;
+        height: 58px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255,255,255,.035);
+      }
+      .mock-line:nth-child(1) { top: 36px; }
+      .mock-line:nth-child(2) { top: 118px; width: 45%; }
+      .mock-line:nth-child(3) { top: 200px; width: 70%; }
+      .mock-line:nth-child(4) { top: 282px; width: 56%; }
+      .hotspot {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid var(--paper);
+        background: var(--signal);
+        box-shadow: 0 0 24px rgba(53,211,153,.7);
+        cursor: pointer;
+      }
+      .hotspot-tip {
+        min-height: 150px;
+      }
+      .case-wrap {
+        position: relative;
+      }
+      .case-card {
+        display: none;
+      }
+      .case-card.active {
+        display: block;
+      }
+      .case-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .case-metric {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(255,255,255,.035);
+      }
+      .case-metric strong {
+        display: block;
+        font-size: 26px;
+        color: var(--signal);
+      }
+      .footer {
+        margin-top: 90px;
+        border-top: 1px solid var(--line);
+        background: rgba(7,20,18,.82);
+        padding: 42px 24px;
+      }
+      .footer-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1.3fr repeat(4, 1fr);
+        gap: 24px;
+      }
+      .footer a {
+        display: block;
+        color: var(--text);
+        text-decoration: none;
+        margin-top: 8px;
+      }
+      .client-title {
+        text-align: center;
+        color: var(--ink);
+        font-size: clamp(26px, 4vw, 44px);
+        line-height: 1.15;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        margin: 0 24px 28px;
+      }
+      .logo-marquee {
+        display: flex;
+        width: max-content;
+        animation: marquee 34s linear infinite;
+      }
+      .logo-track {
+        display: flex;
+        gap: 58px;
+        padding-right: 58px;
+        align-items: center;
+      }
+      .client-logo {
+        min-width: 138px;
+        text-align: center;
+        color: rgba(237,247,245,.5);
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: 0;
+        filter: grayscale(1);
+        opacity: .72;
+      }
+      .client-logo span {
+        display: block;
+        color: rgba(182,203,198,.52);
+        font-size: 11px;
+        margin-top: 4px;
+        text-transform: uppercase;
+      }
+      @keyframes marquee {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+      }
+      .login-card {
+        position: relative;
+        z-index: 1;
+        width: min(440px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(12,33,31,.72);
+        box-shadow: 0 28px 80px rgba(0,0,0,.4);
+        padding: 24px;
+        backdrop-filter: blur(18px);
+        color: var(--ink);
+      }
+      .login-card h1 {
+        margin: 18px 0 8px;
+        font-size: 30px;
+      }
+      .login-card .brand {
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        font-size: 20px;
+        margin: 4px 0 18px;
+        color: var(--ink);
+      }
+      .login-card > p {
+        text-align: center;
+      }
+      .login-card label {
+        display: none;
+        margin-top: 16px;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .login-card input {
+        width: 100%;
+        min-height: 44px;
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #061412;
+        color: var(--ink);
+        padding: 10px 12px;
+      }
+      .login-error {
+        min-height: 22px;
+        color: var(--danger);
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .login-provider {
+        width: 100%;
+        min-height: 42px;
+        margin-bottom: 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(255,255,255,.035);
+        color: var(--ink);
+        display: grid;
+        grid-template-columns: 28px 1fr 28px;
+        align-items: center;
+        padding: 6px 9px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .provider-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        font-size: 16px;
+        font-weight: 900;
+      }
+      .divider {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 12px;
+        align-items: center;
+        margin: 18px 0 10px;
+        color: #6b778c;
+        font-size: 13px;
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        height: 1px;
+        background: #6b778c;
+        opacity: .75;
+      }
+      .login-links {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 12px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .login-links a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .demo-credentials {
+        margin-top: 16px;
+        border: 1px solid rgba(244,201,93,.35);
+        border-radius: 10px;
+        background: rgba(244,201,93,.09);
+        padding: 12px;
+        color: #ffe6a3;
+        font-size: 13px;
+      }
+      .login-security-note {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .app-shell {
+        display: block;
+        min-height: calc(100vh - 73px);
+        position: relative;
+        z-index: 1;
+      }
+      .app-shell.nav-open {
+        display: block;
+      }
+      .analysis-start {
+        display: none;
+        min-height: calc(100vh - 96px);
+        place-items: center;
+        padding: 40px 24px;
+      }
+      .post-login-home {
+        display: none;
+        min-height: calc(100vh - 96px);
+        place-items: center;
+        padding: 40px 24px;
+      }
+      body.dashboard-home .post-login-home {
+        display: grid;
+      }
+      body.dashboard-home .app-shell {
+        display: none;
+      }
+      body.dashboard-home .header-actions {
+        display: flex;
+      }
+      .wave-stage {
+        width: min(1120px, 100%);
+        min-height: 620px;
+        border: 0;
+        border-radius: 34px;
+        position: relative;
+        overflow: hidden;
+        background: transparent;
+        box-shadow: none;
+      }
+      .neural-core {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: min(560px, 76vw);
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        overflow: hidden;
+        background: radial-gradient(circle, rgba(21,40,82,.28), rgba(0,0,0,.08) 58%, transparent 74%);
+        filter: drop-shadow(0 0 44px rgba(91,141,255,.34));
+        animation: neuralFloat 9s ease-in-out infinite alternate;
+        z-index: 1;
+      }
+      .neural-core::before {
+        content: "";
+        position: absolute;
+        inset: 8%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(94,143,255,.16), transparent 58%);
+        box-shadow: inset 0 0 60px rgba(94,143,255,.18);
+        animation: neuralBreath 6s ease-in-out infinite alternate;
+        pointer-events: none;
+      }
+      .neural-core img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+        opacity: .92;
+        mix-blend-mode: screen;
+      }
+      @keyframes neuralFloat {
+        from { transform: translate(-50%, -52%) rotate(-1deg) scale(.98); }
+        to { transform: translate(-50%, -48%) rotate(1deg) scale(1.025); }
+      }
+      @keyframes neuralBreath {
+        from { opacity: .36; transform: scale(.96); }
+        to { opacity: .72; transform: scale(1.04); }
+      }
+      body.analysis-mode .analysis-start {
+        display: grid;
+      }
+      body.analysis-mode .app-shell {
+        display: none;
+      }
+      body.analysis-mode .header-actions {
+        display: none;
+      }
+      .analysis-panel {
+        width: min(1120px, 100%);
+        max-height: calc(100vh - 140px);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(12,33,31,.92), rgba(8,27,25,.84));
+        box-shadow: 0 34px 110px rgba(0,0,0,.42);
+        padding: 24px;
+        text-align: left;
+        overflow: hidden;
+        position: relative;
+      }
+      .analysis-panel h1 {
+        font-size: clamp(30px, 4vw, 48px);
+        max-width: 840px;
+        margin: 10px 0 10px;
+      }
+      .analysis-steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin: 24px 0;
+      }
+      .analysis-steps .control {
+        text-align: left;
+        cursor: pointer;
+        min-height: 118px;
+        transition: transform .2s ease, border-color .2s ease, background .2s ease;
+      }
+      .analysis-steps .control:hover,
+      .analysis-steps .control.active {
+        transform: translateY(-2px);
+        border-color: rgba(53,211,153,.64);
+        background: rgba(16,43,40,.9);
+      }
+      .diagnosis-scroll {
+        max-height: 43vh;
+        overflow-y: auto;
+        padding-right: 8px;
+        scroll-behavior: smooth;
+      }
+      .diagnosis-step {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(7,20,18,.62);
+        padding: 22px;
+        margin-bottom: 14px;
+      }
+      .diagnosis-step h2 {
+        margin: 0 0 10px;
+        font-size: 24px;
+      }
+      .diagnosis-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .field {
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 14px;
+        padding: 14px;
+        background: rgba(2,8,7,.45);
+      }
+      .field label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(2,8,7,.66);
+        color: var(--ink);
+        padding: 11px 12px;
+        font-family: inherit;
+      }
+      .field textarea {
+        min-height: 92px;
+        resize: vertical;
+      }
+      .analysis-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+      .wrap { max-width: 1280px; margin: 0 auto; padding: 18px 24px; }
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 18px;
+        margin-left: auto;
+      }
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .header-section-label {
+        color: var(--ink);
+        font-weight: 900;
+        font-size: 15px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
+      .logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background:
+          linear-gradient(135deg, var(--signal), var(--signal-2));
+        box-shadow: 0 0 24px rgba(53,211,153,.2);
+        display: inline-block;
+      }
+      .workspace-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 600;
+        margin-left: 0;
+        white-space: nowrap;
+      }
+      .profile-menu {
+        position: relative;
+      }
+      .avatar-button {
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 50% 35%, #d8f6ee 0 12%, transparent 13%),
+          radial-gradient(circle at 50% 74%, #0b2f2b 0 33%, transparent 34%),
+          linear-gradient(135deg, var(--signal), var(--signal-2));
+        cursor: pointer;
+      }
+      .profile-dropdown {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 10px);
+        width: 260px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(12,33,31,.96);
+        box-shadow: 0 22px 60px rgba(0,0,0,.42);
+        padding: 10px;
+        display: none;
+      }
+      .profile-dropdown.open {
+        display: block;
+      }
+      .profile-head {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 10px 12px;
+        margin-bottom: 6px;
+      }
+      .profile-head strong {
+        display: block;
+        color: var(--ink);
+      }
+      .profile-head span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+      }
+      .profile-item {
+        width: 100%;
+        min-height: 42px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        font-weight: 700;
+        text-align: left;
+      }
+      .profile-item:hover {
+        background: rgba(255,255,255,.06);
+      }
+      .profile-item.danger {
+        color: var(--danger);
+      }
+      .modal-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 45;
+        display: none;
+        place-items: center;
+        padding: 24px;
+        background: rgba(2,8,7,.62);
+        backdrop-filter: blur(8px);
+      }
+      .modal-screen.open {
+        display: grid;
+      }
+      .modal-card {
+        width: min(560px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(12,33,31,.96);
+        box-shadow: 0 28px 80px rgba(0,0,0,.45);
+        padding: 22px;
+      }
+      .modal-card h2 {
+        font-size: 22px;
+        margin-bottom: 8px;
+      }
+      .modal-card input,
+      .modal-card select {
+        margin-top: 10px;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      nav {
+        display: none;
+      }
+      .app-shell.nav-open nav {
+        display: none;
+      }
+      nav button, .btn {
+        border: 0;
+        border-radius: 3px;
+        min-height: 36px;
+        padding: 8px 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      nav button {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+        text-align: left;
+        background: transparent;
+        color: rgba(255,255,255,.88);
+      }
+      nav button:hover { background: rgba(255,255,255,.12); }
+      nav button.active { background: rgba(255,255,255,.22); color: white; }
+      .btn.primary { background: var(--signal); color: #061412; }
+      .btn.primary:hover { background: #53f0bd; }
+      .btn.secondary { background: #0d3143; color: var(--ink); border: 1px solid var(--line); }
+      main { min-height: calc(100vh - 73px); }
+      section { display: none; }
+      section.active { display: block; }
+      h1 { margin: 4px 0 18px; font-size: clamp(26px, 3vw, 36px); line-height: 1.14; max-width: 920px; letter-spacing: 0; }
+      h2 { margin: 0; font-size: 16px; }
+      p { color: var(--text); line-height: 1.65; }
+      .kicker { color: var(--signal); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .grid { display: grid; gap: 16px; }
+      .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px;
+        box-shadow: 0 18px 40px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.03);
+        position: relative;
+      }
+      .panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(255,255,255,.035), transparent 28%);
+      }
+      .tag {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: #0d3143;
+        padding: 4px 7px;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+        margin: 4px 4px 0 0;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 3px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      .status-blue { background: rgba(23,184,242,.14); color: #8fe7ff; }
+      .status-green { background: rgba(32,227,162,.14); color: var(--signal); }
+      .status-yellow { background: rgba(255,209,102,.14); color: var(--warning); }
+      .status-red { background: rgba(255,107,107,.14); color: var(--danger); }
+      .audit-stamp {
+        display: inline-grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgba(244,201,93,.55);
+        border-radius: 50%;
+        color: var(--audit);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+      .control-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 16px 0;
+      }
+      .control {
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,.035);
+        border-radius: 10px;
+        padding: 12px;
+      }
+      .control span {
+        color: var(--audit);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .control p {
+        margin: 6px 0 0;
+        font-size: 13px;
+      }
+      .metric-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+      .metric {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 14px;
+      }
+      .metric b { display: block; font-size: 24px; color: var(--ink); margin-top: 4px; }
+      .metric span { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .column {
+        background: rgba(255,255,255,.035);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px;
+        min-height: 220px;
+      }
+      .column h2 {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .issue {
+        background: var(--panel-2);
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 2px rgba(9,30,66,.18);
+      }
+      .issue-key { color: var(--muted); font-size: 12px; font-weight: 800; }
+      .issue-title { margin: 5px 0 10px; color: var(--ink); font-weight: 700; line-height: 1.35; }
+      .issue-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .priority {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        color: white;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .p-high { background: var(--danger); }
+      .p-med { background: var(--warning); color: #061923; }
+      .hero-copy { font-size: 18px; max-width: 760px; }
+      .warn { background: rgba(255,209,102,.12); border-color: rgba(255,209,102,.4); color: #ffe6a3; }
+      .correlation { border-color: var(--signal); }
+      .badge { display: inline-block; background: rgba(53,211,153,.14); color: var(--signal); padding: 6px 8px; border-radius: 8px; font-weight: 800; font-size: 12px; margin-bottom: 18px; text-transform: uppercase; }
+      select, input[type="range"] { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: #061923; color: var(--ink); }
+      label.check { display: flex; gap: 8px; align-items: center; min-height: 38px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.035); padding: 8px; font-size: 14px; }
+      .bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+      .bar span { display: block; height: 100%; background: var(--signal); }
+      .visual-dashboard {
+        display: grid;
+        gap: 16px;
+      }
+      .dashboard-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+      }
+      .kpi-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(12,33,31,.78);
+        padding: 18px;
+      }
+      .kpi-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .kpi-card b {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink);
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1;
+      }
+      .kpi-card small {
+        display: block;
+        margin-top: 8px;
+        color: var(--text);
+      }
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1.1fr .9fr;
+        gap: 16px;
+        align-items: stretch;
+      }
+      .chart-panel {
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 20px;
+        background: rgba(17,19,33,.92);
+        padding: 20px;
+        min-height: 330px;
+      }
+      .chart-panel h2 {
+        margin: 0 0 16px;
+        font-size: 20px;
+      }
+      .bar-chart-visual {
+        height: 250px;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 14px;
+        align-items: end;
+        padding: 10px 4px 0;
+        border-bottom: 1px solid rgba(255,255,255,.14);
+      }
+      .bar-metric {
+        display: grid;
+        gap: 8px;
+        align-items: end;
+        min-width: 0;
+      }
+      .bar-metric i {
+        display: block;
+        min-height: 20px;
+        border-radius: 10px 10px 2px 2px;
+        background: linear-gradient(180deg, #35d399, #159e88);
+        box-shadow: 0 0 22px rgba(53,211,153,.22);
+      }
+      .bar-metric.critical i { background: linear-gradient(180deg, #ff7b7b, #d45151); }
+      .bar-metric.warning i { background: linear-gradient(180deg, #ffd166, #c99b2c); }
+      .bar-metric span {
+        color: var(--text);
+        font-size: 11px;
+        font-weight: 800;
+        text-align: center;
+        line-height: 1.2;
+      }
+      .donut-wrap {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 22px;
+        align-items: center;
+      }
+      .donut {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: conic-gradient(#ff7b7b 0 34%, #ffd166 34% 68%, #35d399 68% 100%);
+        display: grid;
+        place-items: center;
+      }
+      .donut::after {
+        content: attr(data-score);
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+        background: var(--panel);
+        display: grid;
+        place-items: center;
+        color: var(--ink);
+        font-size: 34px;
+        font-weight: 900;
+      }
+      .legend-list {
+        display: grid;
+        gap: 12px;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--text);
+      }
+      .legend-item i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+      }
+      .risk-matrix {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .risk-cell {
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 14px;
+        padding: 14px;
+        min-height: 104px;
+        background: rgba(2,8,7,.42);
+      }
+      .risk-cell strong {
+        display: block;
+        color: var(--ink);
+        margin-bottom: 8px;
+      }
+      .risk-cell p {
+        margin: 0;
+        font-size: 13px;
+      }
+      .risk-cell.critical { border-color: rgba(255,123,123,.5); background: rgba(255,123,123,.12); }
+      .risk-cell.warning { border-color: rgba(255,209,102,.45); background: rgba(255,209,102,.1); }
+      .risk-cell.good { border-color: rgba(53,211,153,.42); background: rgba(53,211,153,.1); }
+      .area-health-map {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
+      .area-chip {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        min-height: 76px;
+        background: rgba(2,8,7,.42);
+      }
+      .area-chip strong {
+        display: block;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.25;
+      }
+      .area-chip span {
+        display: inline-block;
+        margin-top: 8px;
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .area-chip.healthy { border-color: rgba(53,211,153,.42); background: rgba(53,211,153,.1); }
+      .area-chip.warning { border-color: rgba(255,209,102,.45); background: rgba(255,209,102,.1); }
+      .area-chip.elevated { border-color: rgba(255,154,76,.5); background: rgba(255,154,76,.12); }
+      .area-chip.critical { border-color: rgba(255,123,123,.5); background: rgba(255,123,123,.12); }
+      .area-chip.unknown { border-color: rgba(148,163,184,.35); background: rgba(148,163,184,.08); }
+      .adaptive-dashboard {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 18px;
+        align-items: start;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 28px;
+        background: rgba(12,14,25,.86);
+        box-shadow: 0 38px 120px rgba(0,0,0,.42);
+        padding: 18px;
+      }
+      .sector-sidebar {
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 22px;
+        background: rgba(11,13,24,.92);
+        padding: 16px;
+        position: sticky;
+        top: 96px;
+        max-height: calc(100vh - 130px);
+        overflow: auto;
+      }
+      .company-size-select {
+        width: 100%;
+        margin: 10px 0 14px;
+        border: 1px solid rgba(178,239,232,.28);
+        border-radius: 12px;
+        background: rgba(2,8,7,.62);
+        color: var(--ink);
+        padding: 11px 12px;
+        font-weight: 800;
+      }
+      .interface-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .interface-option {
+        border: 1px solid rgba(178,239,232,.22);
+        border-radius: 16px;
+        background: rgba(2,8,7,.52);
+        color: var(--ink);
+        padding: 14px;
+        cursor: pointer;
+        min-height: 130px;
+        display: grid;
+        align-content: space-between;
+        transition: border-color .18s ease, transform .18s ease, background .18s ease;
+      }
+      .interface-option:hover,
+      .interface-option:has(input:checked) {
+        border-color: rgba(53,211,153,.72);
+        background: rgba(53,211,153,.12);
+      }
+      .interface-option input { margin-right: 8px; }
+      .interface-option strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+      .interface-option span {
+        color: var(--text);
+        line-height: 1.45;
+      }
+      .interface-preview {
+        height: 34px;
+        border-radius: 12px;
+        border: 1px solid rgba(178,239,232,.2);
+        margin-top: 12px;
+      }
+      .interface-preview.traditional {
+        background: linear-gradient(135deg, #071412, #102b28);
+      }
+      .interface-preview.modern {
+        background: linear-gradient(135deg, rgba(255,255,255,.24), rgba(255,255,255,.06)), rgba(9,22,29,.42);
+        backdrop-filter: blur(12px);
+      }
+      .sector-button {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--ink);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        font-weight: 800;
+        text-align: left;
+        transition: background .18s ease, border-color .18s ease, transform .18s ease;
+      }
+      .sector-button.active,
+      .sector-button:hover {
+        border-color: rgba(178,239,232,.38);
+        background: rgba(178,239,232,.16);
+      }
+      .sector-button:active {
+        transform: translateY(1px);
+      }
+      .sector-button small {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .health-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+      }
+      .health-dot.healthy { background: #35d399; }
+      .health-dot.warning { background: #ffd166; }
+      .health-dot.elevated { background: #ff9a4c; }
+      .health-dot.critical { background: #ff7b7b; }
+      .health-dot.unknown { background: #94a3b8; }
+      .dashboard-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .time-toggle {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        background: rgba(2,8,7,.45);
+      }
+      .time-toggle button {
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 900;
+      }
+      .time-toggle button.active {
+        background: var(--signal);
+        color: #061412;
+      }
+      .insight-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .insight-card {
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 16px;
+        background: rgba(17,19,33,.92);
+        padding: 18px;
+        min-height: 150px;
+      }
+      .insight-card h3 {
+        margin: 8px 0;
+        font-size: 18px;
+      }
+      .sparkline {
+        height: 70px;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        align-items: end;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .sparkline i {
+        display: block;
+        border-radius: 8px 8px 2px 2px;
+        background: linear-gradient(180deg, #35d399, #168f7f);
+        min-height: 10px;
+      }
+      .pain-list {
+        display: grid;
+        gap: 10px;
+      }
+      .pain-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 1.4fr 100px;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(17,19,33,.72);
+      }
+      .pain-row strong { color: var(--ink); }
+      .dashboard-main-grid {
+        display: grid;
+        grid-template-columns: 1fr 290px;
+        gap: 14px;
+      }
+      .dashboard-card-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .dark-card {
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 16px;
+        background: rgba(17,19,33,.92);
+        padding: 16px;
+      }
+      .dark-card b {
+        display: block;
+        color: var(--ink);
+        font-size: 24px;
+        margin-top: 12px;
+      }
+      .dark-card span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .mini-level-chart {
+        height: 150px;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+        align-items: end;
+        margin-top: 12px;
+      }
+      .mini-level-chart i {
+        display: block;
+        border-radius: 8px 8px 2px 2px;
+        background: #a8e6df;
+      }
+      .line-chart {
+        height: 210px;
+        position: relative;
+        background:
+          linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+        background-size: 100% 52px, 70px 100%;
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .line-chart svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      @media (max-width: 980px) {
+        .adaptive-dashboard,
+        .dashboard-grid,
+        .dashboard-main-grid,
+        .dashboard-card-row,
+        .insight-grid {
+          grid-template-columns: 1fr;
+        }
+        .sector-sidebar {
+          position: relative;
+          top: auto;
+          max-height: none;
+        }
+        .pain-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      .compact-table td,
+      .compact-table th {
+        padding: 10px;
+        font-size: 13px;
+      }
+      pre { white-space: pre-wrap; overflow: auto; max-height: 460px; background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 6px; line-height: 1.5; }
+      ul { color: var(--text); line-height: 1.75; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      th, td {
+        border-bottom: 1px solid var(--line);
+        padding: 12px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 14px;
+      }
+      th {
+        background: #0d3143;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+      tr:last-child td { border-bottom: 0; }
+      .health-layout {
+        display: grid;
+        grid-template-columns: 1fr 330px;
+        gap: 16px;
+        align-items: start;
+      }
+      .health-card {
+        min-height: 360px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .health-score {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 24px;
+        align-items: center;
+      }
+      .ring {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: conic-gradient(var(--signal) 0 47%, rgba(244,201,93,.65) 47% 58%, rgba(255,255,255,.08) 58% 100%);
+        display: grid;
+        place-items: center;
+      }
+      .ring-inner {
+        width: 118px;
+        height: 118px;
+        border-radius: 50%;
+        background: var(--panel);
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+      .ring-inner b {
+        display: block;
+        font-size: 34px;
+      }
+      .mini-bars {
+        display: grid;
+        gap: 14px;
+      }
+      .mini-bar-row {
+        display: grid;
+        grid-template-columns: 190px 1fr 36px;
+        gap: 10px;
+        align-items: center;
+        color: var(--text);
+        font-size: 13px;
+      }
+      .connector-options {
+        display: grid;
+        gap: 12px;
+      }
+      .connector-option {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        background: rgba(255,255,255,.035);
+      }
+      .connector-option h2 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .ai-layer {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        align-items: stretch;
+      }
+      .ai-orb-card {
+        min-height: 300px;
+        overflow: hidden;
+      }
+      .dynamic-ai-panel {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 18px;
+        align-items: center;
+      }
+      .ai-orb {
+        position: relative;
+        min-height: 260px;
+        display: grid;
+        place-items: center;
+      }
+      .ai-orb::before {
+        content: "";
+        width: 210px;
+        height: 210px;
+        border-radius: 50%;
+        border: 1px solid rgba(53,211,153,.45);
+        background:
+          radial-gradient(circle, rgba(53,211,153,.18), transparent 58%),
+          repeating-radial-gradient(circle, rgba(56,189,248,.18) 0 2px, transparent 2px 8px);
+        box-shadow: 0 0 70px rgba(53,211,153,.2);
+        animation: pulseOrb 5s ease-in-out infinite alternate;
+      }
+      .ai-orb::after {
+        content: "IA";
+        position: absolute;
+        display: grid;
+        place-items: center;
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 1px solid rgba(244,201,93,.55);
+        background: rgba(7,20,18,.82);
+        color: var(--signal);
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+      @keyframes pulseOrb {
+        from { transform: scale(.96) rotate(0deg); opacity: .78; }
+        to { transform: scale(1.04) rotate(8deg); opacity: 1; }
+      }
+      .ai-capabilities {
+        display: none;
+      }
+      .ai-capability {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(255,255,255,.035);
+        padding: 12px;
+      }
+      .ai-capability strong {
+        display: block;
+        color: var(--ink);
+        margin-bottom: 5px;
+      }
+      .signal-flow {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .signal-flow-item {
+        display: grid;
+        grid-template-columns: 90px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255,255,255,.035);
+        padding: 10px;
+      }
+      .signal-flow-item span {
+        color: var(--signal);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .signal-pulse {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--signal);
+        box-shadow: 0 0 16px rgba(53,211,153,.7);
+        animation: blinkSignal 1.4s ease-in-out infinite alternate;
+      }
+      .signal-flow-item:nth-child(2) .signal-pulse { animation-delay: .2s; }
+      .signal-flow-item:nth-child(3) .signal-pulse { animation-delay: .4s; }
+      .signal-flow-item:nth-child(4) .signal-pulse { animation-delay: .6s; }
+      @keyframes blinkSignal {
+        from { opacity: .35; transform: scale(.88); }
+        to { opacity: 1; transform: scale(1.12); }
+      }
+      @media (max-width: 980px) {
+        .app-shell { grid-template-columns: 1fr; }
+        nav { display: flex; gap: 8px; overflow-x: auto; padding: 10px 18px; }
+        nav button { width: auto; white-space: nowrap; margin-bottom: 0; }
+        .cols-2, .cols-3, .metric-row, .board, .health-layout, .health-score, .control-strip, .ai-layer, .ai-capabilities, .dynamic-ai-panel, .analysis-steps { grid-template-columns: 1fr; }
+        .top { align-items: flex-start; }
+        .header-right { flex-direction: column-reverse; align-items: flex-end; gap: 10px; }
+        .header-actions { flex-wrap: wrap; justify-content: flex-end; }
+        .sales-menu { display: none; }
+        .sales-hero, .proof-grid, .sales-journey, .sales-decision, .solution-grid, .content-grid, .events-grid, .news-grid, .comparison, .tour-shell, .footer-inner { grid-template-columns: 1fr; }
+        .sales-hero { margin-top: 44px; }
+        .sales-ai-guide { position: relative; top: auto; min-height: 440px; }
+      }
+    </style>
+  </head>
+  <body class="public-mode" data-interface="moderna">
+    <div class="sales-screen" id="salesScreen">
+      <div class="sales-nav">
+        <div class="brand"><span class="logo"></span>AI Resilience OS</div>
+        <div class="sales-menu">
+          <a href="#audit-solution">Solução</a>
+          <a href="#clients">Prova social</a>
+          <a href="#cases">Resultados</a>
+          <button type="button" onclick="openSearch()">Buscar</button>
+        </div>
+        <button class="btn secondary" type="button" onclick="openLogin()">Acessar Interface</button>
+      </div>
+      <section class="sales-hero">
+        <div class="sales-copy">
+          <span class="status status-green">Diagnóstico executivo de saúde empresarial</span>
+          <h1>Uma Inteligência Artificial que lê os sinais vitais da sua empresa 24/7</h1>
+          <p>O AI Resilience OS cruza dores declaradas, evidências internas e cenários de mudança para gerar score, prioridades e relatório executivo com rastreabilidade.</p>
+          <div class="sales-actions">
+            <button class="btn primary" type="button" onclick="openLogin()">Realizar diagnóstico</button>
+            <button class="btn secondary" type="button" onclick="openLogin()">Ver demonstração</button>
+          </div>
+        </div>
+        <div class="sales-visual">
+          <img class="sales-neural-art" src="file:///C:/Users/Meu%20Computador/Downloads/1_9nEwkQ_j3n6N4olSUFT-Rw.gif" alt="Rede neural azul em movimento" loading="eager" />
+        </div>
+      </section>
+      <section class="sales-journey" id="salesJourney">
+        <div class="journey-copy">
+          <span class="status status-blue">Fluxo orientado por IA auditável</span>
+          <h2>Da primeira resposta ao plano executivo, a IA acompanha o diagnóstico em ciclos.</h2>
+          <div class="journey-card" data-guide-title="Captar sinais" data-guide-text="A IA começa ouvindo a empresa: dores, prioridades, riscos percebidos e documentos enviados.">
+            <div class="journey-number">01</div>
+            <div>
+              <h3>Capta sinais reais da operação</h3>
+              <p>Questionário executivo, uploads e evidências exportadas criam o primeiro mapa da saúde empresarial.</p>
+            </div>
+          </div>
+          <div class="journey-card" data-guide-title="Organizar evidências" data-guide-text="Cada documento vira contexto rastreável: origem, tipo, confiança, dependência de validação e uso recomendado.">
+            <div class="journey-number">02</div>
+            <div>
+              <h3>Organiza evidências com rastreabilidade</h3>
+              <p>O sistema separa dor declarada, hipótese, achado simulado e evidência, evitando diagnóstico genérico.</p>
+            </div>
+          </div>
+          <div class="journey-card" data-guide-title="Correlacionar riscos" data-guide-text="A inteligência cruza dor, cenário e evidência para revelar fragilidades prioritárias e oportunidades de melhoria.">
+            <div class="journey-number">03</div>
+            <div>
+              <h3>Correlaciona riscos e oportunidades</h3>
+              <p>Cada recomendação nasce de um cruzamento claro entre sinais internos e pressão externa.</p>
+            </div>
+          </div>
+          <div class="journey-card" data-guide-title="Gerar direção" data-guide-text="O diagnóstico vira score, plano, prioridades e relatório executivo para decisão rápida.">
+            <div class="journey-number">04</div>
+            <div>
+              <h3>Gera direção executiva</h3>
+              <p>O resultado é uma visão objetiva da saúde, com ações priorizadas e critérios de aceite.</p>
+            </div>
+          </div>
+        </div>
+        <aside class="sales-ai-guide" id="salesAiGuide">
+          <img class="sales-neural-art" src="file:///C:/Users/Meu%20Computador/Downloads/1_9nEwkQ_j3n6N4olSUFT-Rw.gif" alt="Rede neural azul em movimento" loading="lazy" />
+          <div class="guide-ribbon" id="guideRibbon"></div>
+          <div class="guide-content">
+            <span class="status status-green">IA orientadora</span>
+            <h3 id="guideTitle">Captar sinais</h3>
+            <p id="guideText">A IA começa ouvindo a empresa: dores, prioridades, riscos percebidos e documentos enviados.</p>
+          </div>
+        </aside>
+      </section>
+      <div class="proof-grid">
+        <div class="proof-card"><strong>30 dias</strong><p>para rodar o primeiro sprint de resiliência.</p></div>
+        <div class="proof-card"><strong>8 dimensões</strong><p>avaliando governança, segurança, processos e execução.</p></div>
+        <div class="proof-card"><strong>0 integração</strong><p>necessária no MVP: comece por upload auditável.</p></div>
+        <div class="proof-card"><strong>1 relatório</strong><p>executivo, objetivo e pronto para decisão.</p></div>
+      </div>
+      <div class="client-strip">
+        <span id="clients"></span>
+        <h2 class="client-title">Empresas que evoluem com dados, controle e inteligência operacional</h2>
+        <div class="logo-marquee">
+          <div class="logo-track">
+            <div class="client-logo">Atlas<span>Indústria</span></div>
+            <div class="client-logo">Nexa<span>Serviços</span></div>
+            <div class="client-logo">Omni<span>Varejo</span></div>
+            <div class="client-logo">Boreal<span>Logística</span></div>
+            <div class="client-logo">Civitas<span>Setor público</span></div>
+            <div class="client-logo">Meridian<span>Finanças</span></div>
+            <div class="client-logo">Aurum<span>ERP</span></div>
+            <div class="client-logo">Vector<span>Tecnologia</span></div>
+          </div>
+          <div class="logo-track" aria-hidden="true">
+            <div class="client-logo">Atlas<span>Indústria</span></div>
+            <div class="client-logo">Nexa<span>Serviços</span></div>
+            <div class="client-logo">Omni<span>Varejo</span></div>
+            <div class="client-logo">Boreal<span>Logística</span></div>
+            <div class="client-logo">Civitas<span>Setor público</span></div>
+            <div class="client-logo">Meridian<span>Finanças</span></div>
+            <div class="client-logo">Aurum<span>ERP</span></div>
+            <div class="client-logo">Vector<span>Tecnologia</span></div>
+          </div>
+        </div>
+      </div>
+      <section class="sales-section" id="audit-solution">
+        <div class="section-head">
+          <span class="status status-green">Solução única</span>
+          <h2>Auditoria empresarial assistida por IA, do intake ao relatório executivo.</h2>
+          <p>Uma única solução para coletar evidências, medir a saúde da empresa, apontar riscos e gerar recomendações rastreáveis.</p>
+        </div>
+        <div class="solution-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+          <div class="sales-card"><div class="card-icon">01</div><h3>Coleta auditável</h3><p>Questionário executivo, upload de documentos e classificação da origem de cada evidência.</p></div>
+          <div class="sales-card"><div class="card-icon">02</div><h3>Score de saúde</h3><p>Avaliação por dimensões críticas: governança, segurança, processos, pessoas e rastreabilidade.</p></div>
+          <div class="sales-card"><div class="card-icon">03</div><h3>Relatório executivo</h3><p>Riscos, prioridades, recomendações e próximos passos com critério de aceite.</p></div>
+        </div>
+      </section>
+      <section class="sales-section" id="innovation">
+        <div class="section-head">
+          <span class="status status-blue">Novo padrão de gestão</span>
+          <h2>Uma plataforma que interpreta sinais e transforma complexidade em direção.</h2>
+          <p>Saia de diagnósticos soltos para um ciclo contínuo de coleta, correlação, priorização e execução.</p>
+        </div>
+        <div class="comparison">
+          <div class="sales-card"><span class="status status-yellow">Modelo tradicional</span><h3>Gestão reativa</h3><ul><li>Processos fragmentados</li><li>Decisões sem rastreabilidade</li><li>Documentação dispersa</li><li>Auditoria tardia</li></ul></div>
+          <div class="evolution-arrow">→</div>
+          <div class="sales-card"><span class="status status-green">Modelo inteligente</span><h3>Gestão orientada por evidências</h3><ul><li>Dados conectados</li><li>IA como camada de análise</li><li>Score explicável</li><li>Plano executivo auditável</li></ul></div>
+        </div>
+      </section>
+      <section class="sales-section">
+        <div class="section-head">
+          <span class="status status-green">Tour da plataforma</span>
+          <h2>Explore uma visão pensada para executivos e times de operação.</h2>
+        </div>
+        <div class="tour-shell">
+          <div class="platform-mock">
+            <div class="mock-line"></div><div class="mock-line"></div><div class="mock-line"></div><div class="mock-line"></div>
+            <button class="hotspot" style="left:260px;top:58px" onclick="showHotspot('Financeiro', 'Riscos, custos e impactos priorizados em uma visão executiva.')"></button>
+            <button class="hotspot" style="left:72%;top:142px" onclick="showHotspot('Operações', 'Processos críticos, gargalos e retrabalho mapeados por evidência.')"></button>
+            <button class="hotspot" style="left:58%;top:288px" onclick="showHotspot('Analytics', 'Score, correlações e recomendações com justificativa clara.')"></button>
+          </div>
+          <div class="sales-card hotspot-tip"><span class="status status-blue">Hotspot</span><h3 id="hotspotTitle">Financeiro</h3><p id="hotspotText">Riscos, custos e impactos priorizados em uma visão executiva.</p><button class="btn primary" onclick="openLogin()">Começar tour</button></div>
+        </div>
+      </section>
+      <section class="sales-section" id="cases">
+        <div class="section-head">
+          <span class="status status-green">Cases simulados</span>
+          <h2>Cada número conta uma história de evolução operacional.</h2>
+        </div>
+        <div class="case-wrap">
+          <div class="sales-card case-card active">
+            <span class="status status-blue">Atlas Industrial</span><h3>Padronização de evidências em processos críticos.</h3><p>O desafio era reduzir retrabalho e melhorar clareza executiva sobre riscos operacionais.</p>
+            <div class="case-metrics"><div class="case-metric"><strong>+32%</strong><span>produtividade</span></div><div class="case-metric"><strong>-21%</strong><span>retrabalho</span></div><div class="case-metric"><strong>18d</strong><span>para plano inicial</span></div></div>
+          </div>
+          <div class="sales-card case-card">
+            <span class="status status-blue">Vector Tech</span><h3>Governança de IA e rastreabilidade de decisões.</h3><p>O foco foi separar hipótese, evidência e recomendação em um fluxo executivo.</p>
+            <div class="case-metrics"><div class="case-metric"><strong>+45%</strong><span>agilidade</span></div><div class="case-metric"><strong>8</strong><span>controles criados</span></div><div class="case-metric"><strong>30d</strong><span>sprint completo</span></div></div>
+          </div>
+          <p><button class="btn secondary" onclick="changeCase(-1)">Anterior</button> <button class="btn primary" onclick="changeCase(1)">Próximo case</button></p>
+        </div>
+      </section>
+      <section class="sales-section" id="contents">
+        <div class="section-head">
+          <span class="status status-blue">Conteúdos</span>
+          <h2>Gestão, tecnologia e crescimento com visão executiva.</h2>
+        </div>
+        <div class="content-grid">
+          <div class="sales-card"><span class="status status-green">Governança</span><h3>Como criar decisões auditáveis com IA</h3><p>Um guia para separar fato, hipótese e recomendação.</p></div>
+          <div class="sales-card"><span class="status status-green">Operações</span><h3>Como medir retrabalho operacional</h3><p>Métricas simples para identificar desperdício e priorizar ação.</p></div>
+          <div class="sales-card"><span class="status status-green">Tecnologia</span><h3>Uploads antes de conectores</h3><p>Por que o caminho progressivo reduz risco no piloto.</p></div>
+        </div>
+      </section>
+      <section class="sales-section">
+        <div class="section-head"><span class="status status-yellow">Eventos</span><h2>Nossos eventos</h2></div>
+        <div class="events-grid">
+          <div class="sales-card"><h3>Diagnóstico executivo com evidências</h3><p>12 maio • 10h • Online</p><button class="btn secondary">Inscreva-se</button></div>
+          <div class="sales-card"><h3>Governança de IA para operações</h3><p>20 maio • 15h • Online</p><button class="btn secondary">Inscreva-se</button></div>
+          <div class="sales-card"><h3>Do score ao plano 30/60/90</h3><p>28 maio • 11h • Ao vivo</p><button class="btn secondary">Inscreva-se</button></div>
+        </div>
+      </section>
+      <section class="sales-section">
+        <div class="section-head"><span class="status status-blue">Veja também</span><h2>Notícias e atualizações</h2></div>
+        <div class="news-grid">
+          <div class="sales-card"><h3>Nova matriz de saúde empresarial</h3><p>Atualização do modelo de score por dimensão.</p></div>
+          <div class="sales-card"><h3>Base de conhecimento para diagnóstico</h3><p>Como livros e políticas internas melhoram recomendações.</p></div>
+          <div class="sales-card"><h3>Relatórios executivos com trilha de auditoria</h3><p>Por que explicabilidade é parte do produto.</p></div>
+        </div>
+      </section>
+      <footer class="footer">
+        <div class="footer-inner">
+          <div><div class="brand"><span class="logo"></span>AI Resilience OS</div><p>Plataforma de diagnóstico, evidências, score e plano executivo para empresas que querem evoluir com dados, controle e inteligência.</p></div>
+          <div><h3>Soluções</h3><a>Diagnóstico</a><a>Score</a><a>Relatórios</a></div>
+          <div><h3>Segmentos</h3><a>Indústria</a><a>Serviços</a><a>Tecnologia</a></div>
+          <div><h3>Conteúdos</h3><a>Blog</a><a>Eventos</a><a>Cases</a></div>
+          <div><h3>Legal</h3><a>Privacidade</a><a>Termos</a><a>Compliance</a></div>
+        </div>
+      </footer>
+    </div>
+    <div class="search-overlay" id="searchOverlay">
+      <div class="search-box">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px"><h2>Pesquisar</h2><button class="btn secondary" onclick="closeSearch()">Fechar</button></div>
+        <input placeholder="Pesquisar soluções, conteúdos ou segmentos..." />
+        <div class="search-suggestions">
+          <span class="tag">governança de IA</span><span class="tag">score</span><span class="tag">relatório executivo</span><span class="tag">upload de evidências</span>
+        </div>
+      </div>
+    </div>
+    <div class="login-screen hidden" id="loginScreen">
+      <form class="login-card" onsubmit="login(event)">
+        <div class="brand"><span class="logo"></span>AI Resilience OS</div>
+        <button class="login-provider" type="button" onclick="loginWithSso()"><span class="provider-icon" style="color:var(--signal-2)">G</span><span>Sign in with Google</span><span></span></button>
+        <button class="login-provider" type="button" onclick="loginWithSso()"><span class="provider-icon" style="color:var(--signal)">■</span><span>Sign in with Microsoft</span><span></span></button>
+        <button class="login-provider" type="button" onclick="document.getElementById('username').focus()"><span class="provider-icon">✉</span><span>Sign in with Email</span><span></span></button>
+        <div class="divider">or</div>
+        <label for="username">Email</label>
+        <input id="username" autocomplete="username" placeholder="Email" value="Mestra" />
+        <label for="password">Password</label>
+        <input id="password" autocomplete="current-password" placeholder="Password" type="password" value="123" />
+        <p class="login-error" id="loginError"></p>
+        <button class="btn primary" style="width:100%;margin-top:0" type="submit">Log In</button>
+        <div class="login-links">
+          <a href="#" onclick="return false">No account? Sign up</a>
+          <a href="#" onclick="return false">Forgot password?</a>
+        </div>
+      </form>
+    </div>
+    <header>
+      <div class="wrap">
+        <div class="top">
+          <div class="brand"><span class="logo"></span>AI Resilience OS</div>
+          <div class="header-right">
+            <div class="workspace-meta">
+              <span id="welcomeUser">Bem vindo, Mestra</span>
+              <div class="profile-menu">
+                <button class="avatar-button" type="button" onclick="toggleProfileMenu()" aria-label="Abrir menu de perfil"></button>
+                <div class="profile-dropdown" id="profileDropdown">
+                  <div class="profile-head">
+                    <strong id="profileName">Mestra</strong>
+                    <span>AI Resilience OS</span>
+                  </div>
+                  <button class="profile-item" type="button" onclick="goToDashboard()">Dashboard <span>›</span></button>
+                  <button class="profile-item" type="button" onclick="openAccountSettings()">Configurações da conta <span>›</span></button>
+                  <button class="profile-item" type="button" onclick="openLanguageSettings()">Idioma <span id="languageValue">Português</span></button>
+                  <button class="profile-item" type="button" onclick="openEditProfile()">Editar Perfil <span>›</span></button>
+                  <button class="profile-item danger" type="button" onclick="logout()">Sair <span>↗</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <section class="analysis-start" id="analysisStart">
+      <div class="analysis-panel">
+        <span class="status status-green">Formulário de diagnóstico</span>
+        <h1>Preencha as informações essenciais para iniciar a avaliação de saúde empresarial.</h1>
+        <p>O fluxo começa com dados declarados, evolui para evidências enviadas, calcula o score e prepara recomendações executivas.</p>
+        <div class="analysis-steps">
+          <div class="control active" data-form-step="intake" onclick="scrollToDiagnosisStep('intake')"><span>01 Intake</span><p>Coleta das informações essenciais.</p></div>
+          <div class="control" data-form-step="evidencias" onclick="scrollToDiagnosisStep('evidencias')"><span>02 Evidências</span><p>Upload ou seleção de documentos.</p></div>
+          <div class="control" data-form-step="score" onclick="scrollToDiagnosisStep('score')"><span>03 Score</span><p>Cálculo da saúde da empresa.</p></div>
+          <div class="control" data-form-step="relatorio" onclick="scrollToDiagnosisStep('relatorio')"><span>04 Relatório</span><p>Recomendações e próximos passos.</p></div>
+        </div>
+        <div class="diagnosis-scroll" id="diagnosisScroll" onscroll="syncDiagnosisStep()">
+          <article class="diagnosis-step" id="diag-intake">
+            <span class="status status-yellow">01 Intake</span>
+            <h2>Contexto da empresa</h2>
+            <p>Informações mínimas para entender porte, prioridade e dor principal sem acessar sistemas reais.</p>
+            <div class="diagnosis-fields">
+              <div class="field"><label>Nome da empresa</label><input id="companyName" placeholder="Ex.: Empresa demonstrativa" /></div>
+              <div class="field"><label>Área responsável</label><select id="ownerArea"><option>Operações</option><option>Tecnologia</option><option>Financeiro</option><option>RH</option><option>Segurança</option></select></div>
+              <div class="field"><label>Dor principal</label><textarea id="painInput" placeholder="Descreva a principal dor operacional percebida."></textarea></div>
+              <div class="field"><label>Resultado esperado em 30 dias</label><textarea id="goalInput" placeholder="Ex.: reduzir retrabalho, melhorar rastreabilidade, priorizar riscos."></textarea></div>
+            </div>
+          </article>
+          <article class="diagnosis-step" id="diag-evidencias">
+            <span class="status status-yellow">02 Evidências</span>
+            <h2>Documentos e sinais</h2>
+            <p>O MVP começa por envio controlado de documentos. Conectores entram apenas depois de autorização formal.</p>
+            <div class="diagnosis-fields">
+              <div class="field"><label>Tipo de evidência</label><select id="evidenceType"><option>Política interna</option><option>Organograma</option><option>Relatório operacional</option><option>Inventário de sistemas</option><option>Exportação CSV/JSON/PDF</option></select></div>
+              <div class="field"><label>Status da autorização</label><select id="authorizationStatus"><option>Demo mockada</option><option>Autorização pendente</option><option>Escopo aprovado</option></select></div>
+              <div class="field"><label>Resumo da evidência</label><textarea id="evidenceSummary" placeholder="O que esse documento ajuda a comprovar?"></textarea></div>
+              <div class="field"><label>Dependência</label><textarea id="dependencyInput" placeholder="Validação humana, especialista, acesso, aprovação ou contrato."></textarea></div>
+            </div>
+          </article>
+          <article class="diagnosis-step" id="diag-score">
+            <span class="status status-yellow">03 Score</span>
+            <h2>Parâmetros de saúde</h2>
+            <p>O score deve combinar respostas declaradas, evidências e maturidade por dimensão.</p>
+            <div class="diagnosis-fields">
+              <div class="field"><label>Governança</label><select id="governanceScore"><option>1 - inexistente</option><option selected>2 - informal</option><option>3 - parcial</option><option>4 - formal</option><option>5 - contínua</option></select></div>
+              <div class="field"><label>Rastreabilidade</label><select id="traceabilityScore"><option>1 - inexistente</option><option selected>2 - informal</option><option>3 - parcial</option><option>4 - formal</option><option>5 - contínua</option></select></div>
+              <div class="field"><label>Processos críticos</label><select id="processScore"><option>1 - inexistente</option><option>2 - informal</option><option selected>3 - parcial</option><option>4 - formal</option><option>5 - contínua</option></select></div>
+              <div class="field"><label>Segurança e controles</label><select id="securityScore"><option>1 - inexistente</option><option>2 - informal</option><option selected>3 - parcial</option><option>4 - formal</option><option>5 - contínua</option></select></div>
+            </div>
+          </article>
+          <article class="diagnosis-step" id="diag-relatorio">
+            <span class="status status-yellow">04 Relatório</span>
+            <h2>Saída executiva</h2>
+            <p>O relatório consolida achados, prioridades, responsáveis sugeridos, dependências e critérios de aceite.</p>
+            <div class="diagnosis-fields">
+              <div class="field"><label>Formato desejado</label><select id="reportFormat"><option>Resumo executivo</option><option>Relatório completo</option><option>JSON da demo</option></select></div>
+              <div class="field"><label>Público da devolutiva</label><select id="reportAudience"><option>Diretoria</option><option>Conselho</option><option>Operações</option><option>Tecnologia</option></select></div>
+              <div class="field"><label>Top prioridades</label><textarea id="topPriorities" placeholder="Liste as prioridades que devem aparecer no relatório."></textarea></div>
+              <div class="field"><label>Critério de sucesso</label><textarea id="successCriteria" placeholder="Como saberemos que o diagnóstico gerou valor?"></textarea></div>
+            </div>
+          </article>
+        </div>
+        <div class="analysis-footer">
+          <span class="tag">Nenhuma integração real nesta versão</span>
+          <button class="btn primary" type="button" onclick="beginAnalysis()">Continuar para diagnóstico</button>
+        </div>
+      </div>
+    </section>
+    <section class="post-login-home" id="postLoginHome">
+      <div class="wave-stage">
+        <div class="neural-core" aria-label="Núcleo de redes neurais em movimento">
+          <img src="file:///C:/Users/Meu%20Computador/Downloads/1_9nEwkQ_j3n6N4olSUFT-Rw.gif" alt="Rede neural azul em movimento" loading="eager" />
+        </div>
+      </div>
+    </section>
+    <div class="app-shell" id="appShell">
+      <nav id="nav"></nav>
+      <main class="wrap">
+      <section class="active">
+        <div class="kicker">Demo executiva</div>
+        <h1>Sistema operacional de resiliência empresarial para a era da IA</h1>
+        <p class="hero-copy">Após poucas informações iniciais, o sistema estima a saúde operacional da empresa, mostra fragilidades e transforma o diagnóstico em controles, evidências, ações e artefatos revisáveis.</p>
+        <div class="control-strip">
+          <div class="control"><span>Evidence</span><p>Toda recomendação nasce de origem rastreável.</p></div>
+          <div class="control"><span>Control</span><p>Cada ação tem responsável, status e critério de aceite.</p></div>
+          <div class="control"><span>Traceability</span><p>Logs separam hipótese, simulação e achado real.</p></div>
+          <div class="control"><span>Governance</span><p>Conectores só entram com autorização formal.</p></div>
+        </div>
+        <div class="ai-layer">
+          <div class="panel ai-orb-card">
+            <div class="dynamic-ai-panel">
+              <div>
+                <span class="status status-green">Análise inteligente em execução</span>
+                <h2 style="font-size:24px;margin-top:12px">Da evidência ao diagnóstico, em fluxo contínuo</h2>
+                <p>A IA atua como uma camada de leitura e correlação: interpreta sinais, organiza evidências, identifica fragilidades e prepara recomendações auditáveis.</p>
+                <div class="signal-flow">
+                  <div class="signal-flow-item"><span>Entrada</span><p>Questionário executivo e documentos enviados</p><i class="signal-pulse"></i></div>
+                  <div class="signal-flow-item"><span>Leitura</span><p>Classificação de dores, riscos, controles e evidências</p><i class="signal-pulse"></i></div>
+                  <div class="signal-flow-item"><span>Correlação</span><p>Cruzamento entre dor declarada, cenário e evidência</p><i class="signal-pulse"></i></div>
+                  <div class="signal-flow-item"><span>Saída</span><p>Score, recomendações e relatório executivo</p><i class="signal-pulse"></i></div>
+                </div>
+              </div>
+              <div class="ai-orb"></div>
+            </div>
+          </div>
+        </div>
+        <div class="health-layout">
+          <div class="panel health-card">
+            <div class="health-score">
+              <div class="ring"><div class="ring-inner"><div><b>47</b><span>Health Score</span></div></div></div>
+              <div>
+                <span class="status status-yellow">Controle em formação</span>
+                <h2 style="font-size:24px;margin-top:14px">Diagnóstico inicial com baixa rastreabilidade e governança informal de IA</h2>
+                <p>O score combina respostas declaradas, cenários macro e evidências simuladas. Em piloto real, ele melhora com documentos enviados pelo cliente ou conectores autorizados.</p>
+              </div>
+            </div>
+            <div class="mini-bars">
+              <div class="mini-bar-row"><span>Governança de IA</span><div class="bar"><span style="width:40%"></span></div><strong>2/5</strong></div>
+              <div class="mini-bar-row"><span>Auditoria e rastreabilidade</span><div class="bar"><span style="width:40%"></span></div><strong>2/5</strong></div>
+              <div class="mini-bar-row"><span>Integração pós-aquisição</span><div class="bar"><span style="width:40%"></span></div><strong>2/5</strong></div>
+              <div class="mini-bar-row"><span>Infraestrutura</span><div class="bar"><span style="width:60%"></span></div><strong>3/5</strong></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span class="status status-blue">Coleta recomendada</span><span class="audit-stamp">AUD</span></div>
+            <h2 style="font-size:22px;margin-top:12px">Comece por upload auditável. Evolua para conectores.</h2>
+            <p>Para vender e operar com segurança, o caminho ideal é híbrido e progressivo.</p>
+            <div class="connector-options">
+              <div class="connector-option"><h2>1. Formulário + upload <span class="status status-green">MVP</span></h2><p>Cliente envia políticas, organogramas, relatórios, inventário e documentos. Menor fricção e mais seguro.</p></div>
+              <div class="connector-option"><h2>2. Evidências exportadas <span class="status status-blue">Piloto</span></h2><p>Cliente exporta CSV/JSON/PDF de Jira, GitHub, ServiceNow, Datadog ou planilhas.</p></div>
+              <div class="connector-option"><h2>3. Conectores autorizados <span class="status status-yellow">Enterprise</span></h2><p>Integrações OAuth/API com escopo, auditoria, logs e aprovação formal.</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="metric-row" style="margin-top:16px">
+          <div class="metric"><span>Score atual</span><b>47</b></div>
+          <div class="metric"><span>Ações propostas</span><b>7</b></div>
+          <div class="metric"><span>Artefatos Codex</span><b>6</b></div>
+          <div class="metric"><span>Prazo do piloto</span><b>30d</b></div>
+        </div>
+        <div class="grid cols-3">
+          <div class="panel"><span class="status status-blue">Intake</span><h2>Questionário executivo</h2><p>Captura dores, áreas impactadas, maturidade, uso de IA e prioridades.</p></div>
+          <div class="panel"><span class="status status-green">Evidence</span><h2>Upload seguro</h2><p>Recebe documentos e exportações para melhorar o diagnóstico sem conectar sistemas.</p></div>
+          <div class="panel"><span class="status status-yellow">Connectors</span><h2>Conectividade autorizada</h2><p>Entra depois, quando houver contrato, escopo, OAuth/API, logs e governança.</p></div>
+        </div>
+        <p><button class="btn primary" onclick="startHealthCheck()">Verificar saúde</button> <button class="btn secondary" onclick="useSankhya(); startHealthCheck()">Usar cenário demonstrativo Sankhya</button></p>
+      </section>
+
+      <section id="dashboardSection">
+        <div class="kicker">Dashboard adaptativo</div><h1>Saúde por setor da empresa</h1>
+        <p class="hero-copy">Selecione o setor e analise a saúde e pontos de melhoria em RealTime</p>
+        <div id="businessDashboard"></div>
+      </section>
+
+      <section id="intakeSection">
+        <div class="kicker">Etapa 1</div><h1>Mapa de Dores</h1>
+        <div class="grid cols-2" id="form"></div>
+      </section>
+
+      <section>
+        <div class="kicker">Etapa 2</div><h1>Stress Test Macro</h1>
+        <div class="grid cols-2" id="scenarios"></div>
+      </section>
+
+      <section id="evidenceSection">
+        <div class="kicker">Etapa 3</div><h1>Auditoria Simulada</h1>
+        <div class="panel warn"><strong>Auditoria simulada.</strong> Estes achados são mockados. Auditoria real só ocorre com autorização formal, escopo definido, responsáveis indicados e acompanhamento da empresa.</div>
+        <div class="grid cols-2" id="findings" style="margin-top:16px"></div>
+      </section>
+
+      <section>
+        <div class="kicker">Momento uau</div><h1>Motor de Correlação</h1>
+        <div class="panel correlation" id="correlation"></div>
+      </section>
+
+      <section id="scoreSection">
+        <div class="kicker">Métrica executiva</div><h1>Resilience Score</h1>
+        <div class="grid cols-2" id="score"></div>
+      </section>
+
+      <section>
+        <div class="kicker">Execução</div><h1>Plano Executável</h1>
+        <div id="plan"></div>
+      </section>
+
+      <section>
+        <div class="kicker">GitHub ready</div><h1>Backlog</h1>
+        <div class="grid" id="backlog"></div>
+      </section>
+
+      <section>
+        <div class="kicker">Codex Execution Lab</div><h1>Ponte entre diagnóstico e execução versionável</h1>
+        <div class="grid cols-2">
+          <div class="panel"><h2>Artefatos selecionados</h2><ul id="artifacts"></ul></div>
+          <div class="panel"><h2>Prompt gerado para Codex</h2><button class="btn secondary" onclick="copyText(promptText)">Copiar prompt</button><pre id="prompt"></pre></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="kicker">Rastreabilidade</div><h1>Log de Auditoria</h1>
+        <div class="grid" id="auditLog"></div>
+      </section>
+
+      <section id="reportSection">
+        <div class="kicker">Saída executiva</div><h1>Relatório Executivo</h1>
+        <div class="grid cols-2">
+          <div class="panel"><h2>Resumo executivo</h2><button class="btn secondary" onclick="copyText(summaryText)">Copiar resumo</button><pre id="summary"></pre></div>
+          <div class="panel"><h2>Relatório completo</h2><button class="btn secondary" onclick="copyText(reportText)">Copiar relatório</button><pre id="report"></pre></div>
+        </div>
+        <p><button class="btn secondary" onclick="exportJson()">Exportar JSON da demo</button></p>
+      </section>
+
+      <section id="finalDiagnosisSection">
+        <div class="kicker">Plano final</div><h1>Dashboard de saúde empresarial</h1>
+        <p class="hero-copy">Visão objetiva das áreas com pendências de melhoria segundo logs, evidências mockadas e análise declarada.</p>
+        <div id="painResult"></div>
+        <div id="demandPlan" style="margin-top:16px"></div>
+        <div class="grid cols-2" style="margin-top:16px">
+          <div class="panel"><h2>Próximo passo comercial</h2><p>Transformar a simulação em piloto real com informações autorizadas, escopo definido e validação humana.</p></div>
+          <div class="panel"><h2>AI Resilience Sprint</h2><p>Diagnóstico, evidências autorizadas, score, plano, artefatos e relatório executivo.</p><button class="btn primary" onclick="copyText(reportText)">Gerar proposta de piloto</button></div>
+        </div>
+      </section>
+      </main>
+    </div>
+    <div class="modal-screen" id="appModal">
+      <div class="modal-card">
+        <h2 id="modalTitle">Configurações</h2>
+        <div id="modalBody"></div>
+        <div class="modal-actions" id="modalActions">
+          <button class="btn secondary" type="button" onclick="closeModal()">Fechar</button>
+        </div>
+      </div>
+    </div>
+    <div class="visual-credit">Visual layer: NASA / ESA / CSA / STScI Webb Deep Field</div>
+
+    <script>
+      const steps = [
+        { label: "Dashboard", section: "dashboardSection" },
+        { label: "Diagnóstico", section: "intakeSection" },
+        { label: "Evidências", section: "evidenceSection" },
+        { label: "Score", section: "scoreSection" },
+        { label: "Relatório", section: "reportSection" },
+        { label: "Plano final", section: "finalDiagnosisSection" }
+      ];
+      let current = 0;
+      let form = {
+        companySize: "Empresa média",
+        mainPain: "",
+        mainPains: [],
+        customPain: "",
+        impactedAreas: [],
+        recurrence: "",
+        impacts: [],
+        previousAttempt: "",
+        aiUsage: [],
+        governance: "",
+        leadershipRisk: "",
+        readiness: 3,
+        goal: "",
+        expectedOutcome: ""
+      };
+      let selectedSector = "";
+      let selectedWindow = "24H";
+      const sankhya = {
+        companySize: "Empresa grande",
+        mainPain: "Integração de empresas adquiridas",
+        mainPains: ["integração de empresas adquiridas"],
+        customPain: "",
+        impactedAreas: ["Infraestrutura","Engenharia","Segurança","RH","Liderança"],
+        recurrence: "recorrente e crítico",
+        impacts: ["retrabalho","lentidão operacional","baixa rastreabilidade"],
+        previousAttempt: "sim parcialmente",
+        aiUsage: ["uso informal por colaboradores","engenharia e código","documentação"],
+        governance: "orientação informal",
+        leadershipRisk: "decisões sem rastreabilidade",
+        readiness: 2,
+        goal: "acelerar integração pós-aquisição",
+        expectedOutcome: "Acelerar integração pós-aquisição com rastreabilidade, responsáveis claros e redução de retrabalho."
+      };
+      const macro = [
+        ["E se agentes de IA reduzirem drasticamente o tempo de desenvolvimento de software?","Qualidade, segurança, revisão humana e governança de engenharia.","Criar piloto controlado de Codex."],
+        ["E se concorrentes automatizarem suporte e implantação com IA?","Tempo de resposta, qualidade do onboarding e satisfação de clientes.","Mapear fluxos repetitivos e criar backlog de automações."],
+        ["E se colaboradores estiverem usando IA com dados sensíveis sem governança?","Compliance, privacidade, segurança e auditoria.","Criar política de uso seguro de IA e AI Decision Log."],
+        ["E se uma empresa adquirida trouxer práticas frágeis de segurança, IA e infraestrutura?","Integração, governança, segurança, dados, suporte e rastreabilidade.","Criar M&A AI Integration Playbook."],
+        ["E se código gerado por IA entrar em produção sem auditoria?","CI/CD, segurança, confiabilidade e ownership.","Criar checklist para código gerado por IA."]
+      ];
+      const findings = [
+        ["Governança de IA","Ausência de política formal de uso de IA.","Uso de dados sensíveis e decisões sem orientação comum."],
+        ["Segurança","Ausência de checklist para código gerado por IA.","Código sem revisão, falhas de segurança e baixa rastreabilidade."],
+        ["Auditoria","Ausência de AI Decision Log.","Decisões apoiadas por IA sem responsável, contexto ou justificativa."],
+        ["M&A","Ausência de playbook único de integração pós-aquisição.","Aquisições acumulam complexidade sem padrão comum."],
+        ["Processos","Documentação dispersa entre áreas.","Retrabalho e baixa transferência de conhecimento."],
+        ["Infraestrutura","Ausência de matriz de sistemas críticos.","Dificuldade de priorizar integração, segurança e continuidade."],
+        ["Pessoas","Trilhas de capacitação em IA não padronizadas.","Adoção desigual e dependência de especialistas."]
+      ];
+      const companyProfiles = {
+        "Micro / Pequena empresa": {
+          focus: "controle essencial e previsibilidade",
+          areas: ["Vendas","Atendimento","Financeiro básico","Operação","Marketing simples","Tecnologia básica","Contabilidade externa","Jurídico sob demanda"],
+          pains: ["Dependência do dono","Planilhas manuais","Falta de indicadores","Backup frágil","Controle de acessos informal"],
+          dimensions: [["Vendas",48,"warning"],["Atendimento",42,"critical"],["Financeiro",46,"warning"],["Operação",44,"critical"],["Marketing",52,"warning"],["Tecnologia",38,"critical"]]
+        },
+        "Pequena empresa em crescimento": {
+          focus: "padronização e governança inicial",
+          areas: ["Vendas","Marketing","Financeiro","Atendimento","Operações","RH inicial","Tecnologia básica","Segurança inicial"],
+          pains: ["Crescimento sem governança","Falta de SLA","Retrabalho operacional","Leads sem acompanhamento","Permissões frágeis"],
+          dimensions: [["Vendas",58,"warning"],["SLA",41,"critical"],["Operações",49,"warning"],["Financeiro",56,"warning"],["Tecnologia",44,"critical"],["Segurança",46,"warning"]]
+        },
+        "Empresa média": {
+          focus: "ownership, integração e observabilidade",
+          areas: ["Comercial","Marketing","Produto","Tecnologia","Operações","Financeiro","RH","Atendimento","Compras","Dados/BI","Compliance básico","Segurança da Informação"],
+          pains: ["Processos não documentados","Baixa observabilidade","Relatórios inconsistentes","SLA não cumprido","Indicadores sem dono"],
+          dimensions: [["Governança",58,"warning"],["Rastreabilidade",55,"warning"],["Processos",66,"warning"],["Segurança",68,"warning"],["Evidências",62,"warning"],["Execução",74,"healthy"]]
+        },
+        "Empresa grande": {
+          focus: "correlação executiva e controle entre diretorias",
+          areas: ["Diretorias","Produto","Engenharia/TI","Operações","Financeiro/controladoria","Jurídico","RH estratégico","Atendimento N1/N2/N3","Compras/procurement","Dados/BI","Segurança da Informação","Compliance","Riscos","Facilities","Auditoria interna"],
+          pains: ["Silos entre áreas","Logs sem correlação","Riscos de terceiros","Baixa automação","Controles inconsistentes"],
+          dimensions: [["Diretorias",64,"warning"],["Rastreabilidade",45,"critical"],["Incidentes",52,"warning"],["Terceiros",43,"critical"],["Automação",57,"warning"],["Eficiência",69,"healthy"]]
+        },
+        "Enterprise / Empresa regulada": {
+          focus: "resiliência, compliance e auditoria contínua",
+          areas: ["Governança corporativa","Unidades de negócio","Tecnologia crítica","SOC","CSIRT","IAM","GRC","AppSec","CloudSec","Privacidade/LGPD","Continuidade de negócio","Auditoria interna","Compliance regulatório","Risco operacional","Risco tecnológico","Terceiros críticos","Dados/BI","Governança de IA"],
+          pains: ["Exposição regulatória","Falha de auditoria contínua","Logs sem normalização","Terceiros críticos","Baixa rastreabilidade de decisão"],
+          dimensions: [["Regulatório",39,"critical"],["Segurança",54,"warning"],["Continuidade",47,"critical"],["Auditoria",42,"critical"],["Terceiros",45,"critical"],["Resiliência",58,"warning"]]
+        }
+      };
+      const actions = [
+        ["Quick wins","Criar Política de Uso Seguro de IA","/governance/ai-policy-acquired-companies.md"],
+        ["Quick wins","Criar Checklist para Código Gerado por IA","/checklists/ai-generated-code-review.md"],
+        ["Quick wins","Criar AI Decision Log","/audit/ai-decision-log-template.md"],
+        ["Iniciativas estruturais","Criar M&A AI Integration Playbook","/playbooks/ma-ai-integration-playbook.md"],
+        ["Iniciativas estruturais","Criar Matriz de Sistemas Críticos","/checklists/ma-systems-criticality.md"],
+        ["Iniciativas estruturais","Criar Trilha de Requalificação em IA","/training/ma-ai-reskilling-track.md"],
+        ["Dependem de autorização","Criar Piloto Codex Controlado","/backlog/ma-codex-automation-issues.md"]
+      ];
+      const promptText = `Você é o Agente Codex do projeto AI Resilience OS.
+
+Crie arquivos mockados:
+- /playbooks/ma-ai-integration-playbook.md
+- /checklists/ma-systems-criticality.md
+- /governance/ai-policy-acquired-companies.md
+- /audit/ai-decision-log-template.md
+- /backlog/ma-codex-automation-issues.md
+- /reports/executive-summary-ma-resilience.md
+
+Regras anti-AI Slop:
+- não usar dados reais da Sankhya;
+- separar hipótese, achado simulado e recomendação;
+- cada recomendação deve ter origem, impacto, responsável sugerido, artefato e critério de aceite;
+- não propor teste ativo sem autorização formal.`;
+      let summaryText = "";
+      let reportText = "";
+      let currentLanguage = "Português";
+
+      function login(event) {
+        event.preventDefault();
+        const user = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const error = document.getElementById("loginError");
+        if (user === "Mestra" && password === "123") {
+          setWelcomeName(user);
+          document.getElementById("salesScreen").classList.add("hidden");
+          document.getElementById("loginScreen").classList.add("hidden");
+          document.body.classList.remove("public-mode");
+          document.body.classList.remove("analysis-mode", "dashboard-home");
+          document.getElementById("appShell").classList.add("nav-open");
+          go("dashboardSection");
+          error.textContent = "";
+          return;
+        }
+        error.textContent = "Usuário ou senha inválidos.";
+      }
+
+      function loginWithSso() {
+        setWelcomeName("Mestra");
+        document.getElementById("salesScreen").classList.add("hidden");
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.body.classList.remove("public-mode");
+        document.body.classList.remove("analysis-mode", "dashboard-home");
+        document.getElementById("appShell").classList.add("nav-open");
+        go("dashboardSection");
+        document.getElementById("loginError").textContent = "";
+      }
+
+      function openLogin() {
+        document.getElementById("salesScreen").classList.add("hidden");
+        document.getElementById("loginScreen").classList.remove("hidden");
+        document.body.classList.remove("dashboard-home", "analysis-mode");
+      }
+
+      function setWelcomeName(name) {
+        const cleanName = name || "Mestra";
+        document.getElementById("welcomeUser").textContent = `Bem vindo, ${cleanName}`;
+        document.getElementById("profileName").textContent = cleanName;
+      }
+
+      function goToDashboard() {
+        document.getElementById("profileDropdown").classList.remove("open");
+        go("dashboardSection");
+      }
+
+      function toggleProfileMenu() {
+        document.getElementById("profileDropdown").classList.toggle("open");
+      }
+
+      function logout() {
+        document.getElementById("profileDropdown").classList.remove("open");
+        document.body.classList.add("public-mode");
+        document.body.classList.remove("dashboard-home", "analysis-mode");
+        document.getElementById("loginScreen").classList.remove("hidden");
+      }
+
+      function openAccountSettings() {
+        document.getElementById("profileDropdown").classList.remove("open");
+        document.getElementById("modalTitle").textContent = "Configurações da conta";
+        document.getElementById("modalBody").innerHTML = `
+          <p>Configurações demonstrativas do ambiente AI Resilience OS.</p>
+          <div class="grid cols-2" style="margin-top:14px">
+            <div class="control"><span>Perfil</span><p>Usuário autenticado com acesso de demonstração.</p></div>
+            <div class="control"><span>Segurança</span><p>Interface isolada até autenticação.</p></div>
+            <div class="control"><span>Auditoria</span><p>Eventos importantes são registrados no log da demo.</p></div>
+            <div class="control"><span>Dados</span><p>Nenhum dado real é usado nesta versão.</p></div>
+          </div>
+        `;
+        document.getElementById("modalActions").innerHTML = `<button class="btn primary" type="button" onclick="closeModal()">Entendi</button>`;
+        openModal();
+      }
+
+      function openLanguageSettings() {
+        document.getElementById("profileDropdown").classList.remove("open");
+        document.getElementById("modalTitle").textContent = "Idioma";
+        document.getElementById("modalBody").innerHTML = `
+          <p>Selecione o idioma da interface demonstrativa.</p>
+          <select id="languageSelect">
+            <option ${currentLanguage === "Português" ? "selected" : ""}>Português</option>
+            <option ${currentLanguage === "English" ? "selected" : ""}>English</option>
+          </select>
+        `;
+        document.getElementById("modalActions").innerHTML = `
+          <button class="btn secondary" type="button" onclick="closeModal()">Cancelar</button>
+          <button class="btn primary" type="button" onclick="saveLanguage()">Salvar</button>
+        `;
+        openModal();
+      }
+
+      function saveLanguage() {
+        currentLanguage = document.getElementById("languageSelect").value;
+        const item = document.getElementById("languageValue");
+        if (item) item.textContent = currentLanguage;
+        closeModal();
+      }
+
+      function openEditProfile() {
+        document.getElementById("profileDropdown").classList.remove("open");
+        const currentName = document.getElementById("profileName").textContent || "Mestra";
+        const sizeOptions = Object.keys(companyProfiles);
+        document.getElementById("modalTitle").textContent = "Editar Perfil";
+        document.getElementById("modalBody").innerHTML = `
+          <p>Atualize o perfil da sessão demonstrativa. O porte da empresa fica disponível apenas nesta configuração.</p>
+          <label for="profileNameInput">Nome exibido</label>
+          <input id="profileNameInput" value="${currentName}" />
+          <label for="profileCompanySizeInput" style="display:block;margin-top:14px">Tamanho da empresa</label>
+          <select id="profileCompanySizeInput" class="company-size-select">
+            ${sizeOptions.map(option => `<option ${form.companySize === option ? "selected" : ""}>${option}</option>`).join("")}
+          </select>
+        `;
+        document.getElementById("modalActions").innerHTML = `
+          <button class="btn secondary" type="button" onclick="closeModal()">Cancelar</button>
+          <button class="btn primary" type="button" onclick="saveProfile()">Salvar perfil</button>
+        `;
+        openModal();
+      }
+
+      function saveProfile() {
+        const value = document.getElementById("profileNameInput").value.trim() || "Mestra";
+        const sizeField = document.getElementById("profileCompanySizeInput");
+        setWelcomeName(value);
+        if (sizeField) setCompanySize(sizeField.value);
+        closeModal();
+      }
+
+      function openModal() {
+        document.getElementById("appModal").classList.add("open");
+      }
+
+      function closeModal() {
+        document.getElementById("appModal").classList.remove("open");
+      }
+
+      function openSearch() {
+        document.getElementById("searchOverlay").classList.add("open");
+      }
+
+      function closeSearch() {
+        document.getElementById("searchOverlay").classList.remove("open");
+      }
+
+      function showHotspot(title, text) {
+        document.getElementById("hotspotTitle").textContent = title;
+        document.getElementById("hotspotText").textContent = text;
+      }
+
+      let caseIndex = 0;
+      function changeCase(direction) {
+        const cards = Array.from(document.querySelectorAll(".case-card"));
+        cards[caseIndex].classList.remove("active");
+        caseIndex = (caseIndex + direction + cards.length) % cards.length;
+        cards[caseIndex].classList.add("active");
+      }
+
+      function scrollToDiagnosisStep(step) {
+        const target = document.getElementById(`diag-${step}`);
+        if (!target) return;
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        setActiveDiagnosisStep(step);
+      }
+
+      function setActiveDiagnosisStep(step) {
+        document.querySelectorAll("[data-form-step]").forEach((card) => {
+          card.classList.toggle("active", card.dataset.formStep === step);
+        });
+      }
+
+      function syncDiagnosisStep() {
+        const scrollArea = document.getElementById("diagnosisScroll");
+        if (!scrollArea) return;
+        const stepsList = ["intake", "evidencias", "score", "relatorio"];
+        const active = stepsList.reduce((best, step) => {
+          const element = document.getElementById(`diag-${step}`);
+          if (!element) return best;
+          const distance = Math.abs(element.offsetTop - scrollArea.scrollTop);
+          return distance < best.distance ? { step, distance } : best;
+        }, { step: "intake", distance: Number.POSITIVE_INFINITY });
+        setActiveDiagnosisStep(active.step);
+      }
+
+      function updateSalesGuide() {
+        const journey = document.getElementById("salesJourney");
+        const guide = document.getElementById("salesAiGuide");
+        if (!journey || !guide || document.getElementById("salesScreen").classList.contains("hidden")) return;
+
+        const rect = journey.getBoundingClientRect();
+        const total = Math.max(1, rect.height - window.innerHeight);
+        const progress = Math.min(1, Math.max(0, -rect.top / total));
+        const angle = progress * 360;
+        const x = Math.sin(progress * Math.PI * 2) * 28;
+        const y = Math.cos(progress * Math.PI * 2) * 42;
+        guide.style.setProperty("--dance-angle", `${angle}deg`);
+        guide.style.setProperty("--dance-x", `${x}px`);
+        guide.style.setProperty("--dance-y", `${y}px`);
+        document.getElementById("guideRibbon").style.setProperty("--ribbon-y", `${Math.sin(progress * Math.PI * 3) * 18}px`);
+
+        const cards = Array.from(document.querySelectorAll(".journey-card"));
+        const active = cards.reduce((best, card) => {
+          const distance = Math.abs(card.getBoundingClientRect().top - window.innerHeight * 0.38);
+          return distance < best.distance ? { card, distance } : best;
+        }, { card: cards[0], distance: Number.POSITIVE_INFINITY }).card;
+
+        if (active) {
+          document.getElementById("guideTitle").textContent = active.dataset.guideTitle;
+          document.getElementById("guideText").textContent = active.dataset.guideText;
+        }
+      }
+
+      function init() {
+        document.getElementById("nav").innerHTML = steps.map((s,i)=>`<button onclick='go(${JSON.stringify(s.section)})'><span>${i+1}. ${s.label}</span><span>${i===0?"OS":"→"}</span></button>`).join("");
+        renderForm(); renderStatic(); renderAll(); go("dashboardSection");
+        document.addEventListener("click", (event) => {
+          const sectorButton = event.target.closest("[data-sector]");
+          if (sectorButton) {
+            setDashboardSector(sectorButton.dataset.sector);
+            return;
+          }
+          const menu = document.querySelector(".profile-menu");
+          const dropdown = document.getElementById("profileDropdown");
+          if (menu && dropdown && !menu.contains(event.target)) {
+            dropdown.classList.remove("open");
+          }
+        });
+        window.addEventListener("scroll", updateSalesGuide, { passive: true });
+        updateSalesGuide();
+      }
+      function sectionIndex(target) {
+        const sections = Array.from(document.querySelectorAll("section"));
+        if (typeof target === "string") {
+          const index = sections.findIndex((section) => section.id === target);
+          return index >= 0 ? index : 0;
+        }
+        return target;
+      }
+
+      function go(target) {
+        const i = sectionIndex(target);
+        current = i;
+        document.querySelectorAll("section").forEach((s,idx)=>s.classList.toggle("active", idx === i));
+        document.querySelectorAll("nav button").forEach((b,idx)=>b.classList.toggle("active", sectionIndex(steps[idx].section) === i));
+        renderAll();
+      }
+      function next(){
+        const currentVisibleIndex = steps.findIndex((item) => sectionIndex(item.section) === current);
+        const nextVisible = steps[Math.min(currentVisibleIndex + 1, steps.length - 1)];
+        go(nextVisible.section);
+      }
+      function startHealthCheck() {
+        useSankhya();
+        document.body.classList.remove("dashboard-home");
+        document.body.classList.add("analysis-mode");
+      }
+
+      function beginAnalysis() {
+        collectDiagnosisForm();
+        renderAll();
+        document.body.classList.remove("analysis-mode");
+        document.getElementById("appShell").classList.add("nav-open");
+        go("finalDiagnosisSection");
+      }
+
+      function fieldValue(id, fallback = "") {
+        const field = document.getElementById(id);
+        return field && field.value ? field.value.trim() : fallback;
+      }
+
+      function scoreNumber(id, fallback = 3) {
+        const value = fieldValue(id, `${fallback}`);
+        const match = value.match(/\d/);
+        return match ? Number(match[0]) : fallback;
+      }
+
+      function collectDiagnosisForm() {
+        const pain = fieldValue("painInput", form.mainPain || "Dor operacional ainda não detalhada");
+        const goal = fieldValue("goalInput", form.goal || "gerar clareza executiva e priorizar melhorias");
+        const area = fieldValue("ownerArea", "Operações");
+        const evidence = fieldValue("evidenceType", "Evidência não informada");
+        const authorization = fieldValue("authorizationStatus", "Demo mockada");
+        const priorities = fieldValue("topPriorities", goal);
+        const readinessValues = [
+          scoreNumber("governanceScore", 2),
+          scoreNumber("traceabilityScore", 2),
+          scoreNumber("processScore", 3),
+          scoreNumber("securityScore", 3)
+        ];
+        form.mainPain = pain;
+        form.goal = goal;
+        form.impactedAreas = [area];
+        form.impacts = priorities.split(/,|\n/).map(item => item.trim()).filter(Boolean).slice(0, 4);
+        form.governance = scoreNumber("governanceScore", 2) <= 2 ? "orientação informal" : "parcialmente estruturada";
+        form.leadershipRisk = scoreNumber("traceabilityScore", 2) <= 2 ? "decisões sem rastreabilidade" : "priorização de melhorias";
+        form.readiness = Math.max(1, Math.round(readinessValues.reduce((sum, value) => sum + value, 0) / readinessValues.length));
+        form.evidenceContext = {
+          company: fieldValue("companyName", "Empresa demonstrativa"),
+          evidence,
+          authorization,
+          evidenceSummary: fieldValue("evidenceSummary", "Evidência ainda pendente de validação humana."),
+          dependency: fieldValue("dependencyInput", "Validação humana e autorização formal quando houver auditoria real."),
+          reportFormat: fieldValue("reportFormat", "Resumo executivo"),
+          reportAudience: fieldValue("reportAudience", "Diretoria"),
+          successCriteria: fieldValue("successCriteria", "Critério de sucesso ainda não informado.")
+        };
+      }
+      function useSankhya(){ form = JSON.parse(JSON.stringify(sankhya)); renderForm(); renderAll(); }
+      function panel(html){ return `<div class="panel">${html}</div>`; }
+      function escapeAttr(value) {
+        return String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+      function tags(){ return `<span class="tag">origem: demo mockada</span><span class="status status-yellow">requer validação</span><span class="tag">dependência: autorização formal</span>`; }
+      function priority(level){ return `<span class="priority ${level === "alta" ? "p-high" : "p-med"}">${level === "alta" ? "A" : "M"}</span>`; }
+      function currentProfile() {
+        return companyProfiles[form.companySize] || companyProfiles["Empresa média"];
+      }
+      function sectorStatus(area, index) {
+        if (form.impactedAreas.includes(area)) return "critical";
+        if (index % 5 === 0) return "elevated";
+        if (index % 3 === 0) return "warning";
+        return index % 4 === 0 ? "unknown" : "healthy";
+      }
+      function setDashboardWindow(value) {
+        selectedWindow = value;
+        renderBusinessDashboard();
+      }
+      function setDashboardSector(value) {
+        selectedSector = value;
+        renderBusinessDashboard();
+      }
+      function conciseText(value, fallback, max = 120) {
+        const raw = String(value || fallback || "").replace(/\s+/g, " ").trim();
+        if (!raw) return "";
+        const sentence = raw.match(/^[^.!?]+[.!?]?/)?.[0]?.trim() || raw;
+        return sentence.length > max ? `${sentence.slice(0, max - 3).trim()}...` : sentence;
+      }
+      async function runLiveDiagnosis() {
+        const panel = document.getElementById("liveAiPanel");
+        if (!panel) return;
+        const backendUrl = localStorage.getItem("aiResilienceBackendUrl") || "http://localhost:3001";
+        panel.innerHTML = `<h2>Diagnóstico IA</h2><p>Diagnótico em breve</p>`;
+        try {
+          const response = await fetch(`${backendUrl}/api/diagnose`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              companyName: document.getElementById("profileName")?.textContent || "Empresa demonstrativa",
+              companySize: form.companySize,
+              sector: selectedSector,
+              window: selectedWindow,
+              declaredPain: resolvedPain(),
+              expectedOutcome: form.expectedOutcome || form.goal || "",
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || data.error || "Falha no backend");
+          const ai = data.ai || {};
+          const highestPain = (ai.dores || [])[0] || {};
+          const topImprovement = (ai.melhorias || [])[0] || {};
+          const planMap = Object.fromEntries((ai.plano || []).map(item => [String(item.fase || "").toUpperCase(), item]));
+          const urgentText = conciseText(ai.urgente || highestPain.nome, resolvedPain(), 96);
+          const importantText = conciseText(ai.importante || highestPain.impacto || ai.diagnostico, "Reduzir risco operacional e aumentar clareza de execução.", 110);
+          const shortPlan = conciseText(ai.curtoPrazo || planMap["AGORA"]?.acao || planMap["7D"]?.acao || topImprovement.acao, "Definir owner, priorizar fila crítica e fechar critério de aceite.", 110);
+          const mediumPlan = conciseText(ai.medioPrazo || planMap["30D"]?.acao, "Padronizar rotina, indicadores e handoff entre áreas.", 110);
+          const longPlan = conciseText(ai.longoPrazo || planMap["90D"]?.acao, "Antecipar recorrência e reduzir dependência de processo reativo.", 110);
+          const anticipatedRisk = conciseText(ai.riscoAntecipado || highestPain.evidencia || highestPain.impacto, "Falhas silenciosas podem virar custo, atraso ou incidente crítico.", 120);
+          panel.innerHTML = `
+            <div class="issue-meta"><span class="status status-green">Diagnóstico em tempo real</span><span>${escapeHtml(data.model || "")}</span></div>
+            <h2>${escapeHtml(conciseText(ai.headline, "Leitura executiva do setor", 86))}</h2>
+            <div class="pain-list">
+              <div class="pain-row"><strong>Urgente</strong><span>${escapeHtml(selectedSector)}</span><span>${escapeHtml(urgentText)}</span><span class="status status-yellow">agir agora</span></div>
+              <div class="pain-row"><strong>Importante</strong><span>Impacto</span><span>${escapeHtml(importantText)}</span><span class="status status-blue">priorizar</span></div>
+              <div class="pain-row"><strong>Curto prazo</strong><span>0-7 dias</span><span>${escapeHtml(shortPlan)}</span><span class="status status-yellow">execução</span></div>
+              <div class="pain-row"><strong>Médio prazo</strong><span>8-30 dias</span><span>${escapeHtml(mediumPlan)}</span><span class="status status-blue">estruturar</span></div>
+              <div class="pain-row"><strong>Longo prazo</strong><span>31-90 dias</span><span>${escapeHtml(longPlan)}</span><span class="status status-green">prevenir</span></div>
+            </div>
+            <p style="margin-top:14px"><strong>Risco antecipado:</strong> ${escapeHtml(anticipatedRisk)}</p>
+          `;
+        } catch (error) {
+          panel.innerHTML = `<h2>Diagnóstico IA</h2><p><strong>Não foi possível chamar o backend.</strong></p><p>${escapeHtml(error.message)}</p><p>Confirme se <code>npm run mcp:http</code> e <code>npm run backend</code> estão rodando.</p>`;
+        }
+      }
+      function windowMultiplier() {
+        return { "1H": .35, "24H": 1, "7D": 2.4, "30D": 4.8 }[selectedWindow] || 1;
+      }
+      function resolvedPain() {
+        const pains = Array.isArray(form.mainPains) ? form.mainPains : [];
+        const custom = (form.customPain || "").trim();
+        return [...pains, custom].filter(Boolean).join(", ") || form.mainPain || "Dor operacional ainda não detalhada";
+      }
+      function setCompanySize(value) {
+        form.companySize = value || "Empresa média";
+        form.impactedAreas = form.impactedAreas.filter((area) => currentProfile().areas.includes(area));
+        selectedSector = "";
+        renderForm();
+        renderAll();
+      }
+      function toggleArea(value) {
+        const areas = currentProfile().areas;
+        if (value === "Todos") {
+          form.impactedAreas = form.impactedAreas.length === areas.length ? [] : [...areas];
+        } else {
+          form.impactedAreas = form.impactedAreas.includes(value) ? form.impactedAreas.filter(x=>x!==value) : [...form.impactedAreas, value];
+        }
+        renderForm();
+        renderAll();
+      }
+      function renderForm() {
+        const select = (key, label, opts) => panel(`<h2>${label}</h2><select onchange="form.${key}=this.value; renderAll()"><option></option>${opts.map(o=>`<option ${form[key]===o?"selected":""}>${o}</option>`).join("")}</select><p>${tags()}</p>`);
+        const multi = (key, label, opts) => panel(`<h2>${label}</h2>${opts.map(o=>`<label class="check"><input type="checkbox" ${form[key].includes(o)?"checked":""} onchange="toggle('${key}','${o}')">${o}</label>`).join("")}<p>${tags()}</p>`);
+        const sizeOptions = Object.keys(companyProfiles);
+        const profile = currentProfile();
+        const painOptions = ["processos manuais","integração de empresas adquiridas","retrabalho entre áreas","suporte sobrecarregado","falta de governança de IA",...profile.pains];
+        const allAreasChecked = form.impactedAreas.length === profile.areas.length;
+        const areasInput = panel(`<h2>2. Quais setores devem ser avaliados?</h2><label class="check"><input type="checkbox" ${allAreasChecked?"checked":""} onchange="toggleArea('Todos')">Todos</label>${profile.areas.map(o=>`<label class="check"><input type="checkbox" ${form.impactedAreas.includes(o)?"checked":""} onchange="toggleArea(${JSON.stringify(o)})">${o}</label>`).join("")}<p>${tags()}</p>`);
+        document.getElementById("form").innerHTML =
+          panel(`<h2>1. Qual o tamanho da empresa?</h2><select onchange="setCompanySize(this.value)">${sizeOptions.map(o=>`<option ${form.companySize===o?"selected":""}>${o}</option>`).join("")}</select><p><strong>Foco da análise:</strong> ${profile.focus}</p><p>${tags()}</p>`) +
+          areasInput +
+          multi("mainPains","3. Quais dores mais afetam a saúde operacional?",painOptions) +
+          select("recurrence","4. Frequência do problema",["recorrente e crítico","recorrente mas controlado","acontece em momentos específicos","ainda não está claro"]) +
+          panel(`<h2>5. Não encontrou sua dor?</h2><textarea style="width:100%;min-height:96px;border:1px solid var(--line);border-radius:10px;background:#061923;color:var(--ink);padding:10px" placeholder="Descreva a dor específica da empresa." oninput="form.customPain=this.value; renderAll()">${form.customPain || ""}</textarea><p>${tags()}</p>`) +
+          multi("impacts","6. Sintomas percebidos",["perda de produtividade","aumento de custo","risco de segurança","lentidão operacional","retrabalho","baixa rastreabilidade","queda de conversão","SLA violado","relatórios inconsistentes"]) +
+          select("previousAttempt","Histórico: já tentaram resolver?",["sim mas não funcionou","sim parcialmente","está em andamento","ainda não tentou"]) +
+          multi("aiUsage","7. Onde a IA já aparece?",["engenharia e código","suporte e atendimento","documentação","automação de processos","uso informal por colaboradores","ainda não aparece"]) +
+          select("governance","8. Como está a governança de IA?",["sim formal e aplicada","orientação informal","está sendo criada","não existe","não sei"]) +
+          select("leadershipRisk","9. Maior risco percebido",["vazamento de dados","decisões sem rastreabilidade","código gerado sem revisão","automações sem auditoria","obsolescência de pessoas/processos"]) +
+          panel(`<h2>10. Prontidão para adaptação</h2><input type="range" min="1" max="5" value="${form.readiness}" onchange="form.readiness=Number(this.value); renderAll(); renderForm()"><p><strong>${form.readiness}/5</strong></p>`) +
+          panel(`<h2>11. O que a empresa espera melhorar?</h2><textarea style="width:100%;min-height:120px;border:1px solid var(--line);border-radius:10px;background:#061923;color:var(--ink);padding:10px" placeholder="Descreva o resultado esperado, metas, contexto e prioridades. Isso orienta o raciocínio do diagnóstico." oninput="form.expectedOutcome=this.value; form.goal=this.value; renderAll()">${form.expectedOutcome || form.goal || ""}</textarea><p>${tags()}</p>`);
+      }
+      function toggle(key, value){ form[key] = form[key].includes(value) ? form[key].filter(x=>x!==value) : [...form[key], value]; renderForm(); renderAll(); }
+      function renderBusinessDashboard() {
+        const target = document.getElementById("businessDashboard");
+        if (!target) return;
+        const profile = currentProfile();
+        if (!selectedSector || !profile.areas.includes(selectedSector)) selectedSector = profile.areas[0];
+        const sectorIndex = profile.areas.indexOf(selectedSector);
+        const status = sectorStatus(selectedSector, sectorIndex);
+        const pain = resolvedPain();
+        const multiplier = windowMultiplier();
+        const events = Math.max(3, Math.round((sectorIndex + 4) * 11 * multiplier));
+        const incidents = Math.max(1, Math.round((status === "critical" ? 7 : status === "elevated" ? 5 : status === "warning" ? 3 : 1) * multiplier));
+        const sla = Math.max(72, Math.round(98 - incidents * 2.4));
+        const maturity = Math.max(28, Math.min(92, Math.round((status === "critical" ? 38 : status === "elevated" ? 49 : status === "warning" ? 61 : 78) - multiplier)));
+        const improvement = form.expectedOutcome || form.goal || profile.focus;
+        const spark = Array.from({length: 8}, (_, i) => Math.max(12, Math.min(92, Math.round((events / 3) + (i % 3) * 9 + (status === "critical" ? 18 : 0)))));
+        target.innerHTML = `
+          <div class="adaptive-dashboard">
+            <aside class="sector-sidebar">
+              <div class="issue-meta" style="margin-bottom:12px"><span class="status status-green">Setores</span><span>${profile.areas.length} mapeados</span></div>
+              ${profile.areas.map((area, index) => {
+                const level = sectorStatus(area, index);
+                return `<button class="sector-button ${area === selectedSector ? "active" : ""}" type="button" data-sector="${escapeAttr(area)}" aria-pressed="${area === selectedSector ? "true" : "false"}"><span>${area}</span><span style="display:flex;align-items:center;gap:8px"><small>ver</small><i class="health-dot ${level}"></i></span></button>`;
+              }).join("")}
+            </aside>
+            <div>
+              <div class="dashboard-toolbar">
+                <div><span class="status status-blue">Setor selecionado</span><h2 style="margin:8px 0 0">${selectedSector}</h2></div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+                  <button class="btn primary" type="button" onclick="runLiveDiagnosis()">Analisar com IA</button>
+                  <div class="time-toggle">
+                    ${["1H","24H","7D","30D"].map(w => `<button type="button" class="${selectedWindow === w ? "active" : ""}" onclick="setDashboardWindow('${w}')">${w}</button>`).join("")}
+                  </div>
+                </div>
+              </div>
+              <div class="chart-panel" id="liveAiPanel" style="margin-bottom:16px">
+                <h2>Diagnóstico IA</h2>
+                <p>Diagnótico em breve</p>
+              </div>
+              <div class="dashboard-card-row">
+                <div class="dark-card"><span>Eventos</span><b>${events}</b><small>janela ${selectedWindow}</small></div>
+                <div class="dark-card"><span>Incidentes</span><b>${incidents}</b><small>${status === "critical" ? "crítico" : status === "elevated" ? "risco elevado" : "monitorado"}</small></div>
+                <div class="dark-card"><span>SLA</span><b>${sla}%</b><small>estimado</small></div>
+                <div class="dark-card"><span>Maturidade</span><b>${maturity}</b><small>score do setor</small></div>
+              </div>
+              <div class="dashboard-main-grid">
+                <div class="chart-panel">
+                  <h2>Tendência de sinais</h2>
+                  <div class="line-chart">
+                    <svg viewBox="0 0 700 220" preserveAspectRatio="none" aria-hidden="true">
+                      <defs><linearGradient id="signalFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#a8e6df" stop-opacity=".56"/><stop offset="100%" stop-color="#a8e6df" stop-opacity="0"/></linearGradient></defs>
+                      <path d="M0 190 ${spark.map((v,i)=>`L ${i*100} ${210-v*1.8}`).join(" ")} L 700 210 L 0 210 Z" fill="url(#signalFill)"></path>
+                      <path d="M0 190 ${spark.map((v,i)=>`L ${i*100} ${210-v*1.8}`).join(" ")}" fill="none" stroke="#a8e6df" stroke-width="4"></path>
+                    </svg>
+                  </div>
+                </div>
+                <div class="chart-panel">
+                  <h2>Nível</h2>
+                  <div class="mini-level-chart">${spark.slice(0,6).map(v=>`<i style="height:${Math.max(26,v)}%"></i>`).join("")}</div>
+                  <div class="legend-list" style="margin-top:18px">
+                    <div class="legend-item"><span><i style="background:#a8e6df"></i>Maturidade</span><strong>${maturity}</strong></div>
+                    <div class="legend-item"><span><i style="background:#ffd166"></i>Risco</span><strong>${status}</strong></div>
+                  </div>
+                </div>
+              </div>
+              <div class="chart-panel" style="margin-top:16px">
+                <h2>Dores e melhorias por prioridade</h2>
+                <div class="pain-list">
+                  <div class="pain-row"><strong>${status === "critical" ? "Crítico" : "Atenção"}</strong><span>${selectedSector}</span><span>${profile.pains[0]}</span><span class="status status-yellow">pendente</span></div>
+                  <div class="pain-row"><strong>Melhoria</strong><span>${selectedSector}</span><span>Definir responsável, métrica e rotina de revisão ${selectedWindow}.</span><span class="status status-blue">planejado</span></div>
+                  <div class="pain-row"><strong>Evidência</strong><span>Logs ${selectedWindow}</span><span>${events} eventos simulados sustentam a priorização.</span><span class="status status-green">mockado</span></div>
+                </div>
+              </div>
+              <div class="chart-panel" style="margin-top:16px">
+                <h2>Leitura do setor</h2>
+                <table class="compact-table"><tbody>
+                  <tr><th>Dor</th><td>${pain}</td></tr>
+                  <tr><th>Ponto de melhoria</th><td>${improvement}</td></tr>
+                  <tr><th>Risco</th><td>${status === "critical" ? "Falha recorrente sem owner claro" : status === "elevated" ? "Processo com controle insuficiente" : "Acompanhar tendência"}</td></tr>
+                </tbody></table>
+              </div>
+            </div>
+          </div>`;
+      }
+      function renderStatic() {
+        document.getElementById("scenarios").innerHTML = macro.map((m,i)=>panel(`<div class="issue-meta"><span class="status status-blue">SCN-${String(i+1).padStart(3,"0")}</span>${priority(i === 3 ? "alta" : "media")}</div><h2>${m[0]}</h2><p><strong>O que pode quebrar:</strong> ${m[1]}</p><p><strong>Resposta recomendada:</strong> ${m[2]}</p><p>${tags()}</p>`)).join("");
+        document.getElementById("findings").innerHTML = findings.map((f,i)=>panel(`<div class="issue-meta"><span class="status status-yellow">SIM-${String(i+1).padStart(3,"0")}</span>${priority(i < 4 ? "alta" : "media")}</div><h2>${f[1]}</h2><p>${f[2]}</p><p><strong>Evidência necessária:</strong> amostras autorizadas, entrevistas e revisão documental.</p><p>${tags()}</p>`)).join("");
+        document.getElementById("prompt").textContent = promptText;
+      }
+      function renderAll() {
+        renderBusinessDashboard();
+        const pain = resolvedPain() || "Integração pós-aquisição lenta";
+        const score = calcScore();
+        const context = form.evidenceContext || {};
+        const profile = currentProfile();
+        const goal = form.expectedOutcome || form.goal || "melhorar rastreabilidade, reduzir retrabalho e priorizar riscos";
+        const areas = form.impactedAreas.join(", ") || "áreas ainda não informadas";
+        const impacts = form.impacts.join(", ") || "impactos ainda não informados";
+        const dimensions = profile.dimensions;
+        const areaStatus = sectorStatus;
+        const areaLabel = { healthy: "saudável", warning: "atenção", elevated: "risco", critical: "crítico", unknown: "não avaliado" };
+        const criticalCount = profile.areas.filter((area, index) => ["critical","elevated"].includes(areaStatus(area, index))).length;
+        document.getElementById("painResult").innerHTML =
+          `<div class="visual-dashboard">
+            <div class="dashboard-kpis">
+              <div class="kpi-card"><span>Health score</span><b>${score}</b><small>${score <= 55 ? "controle em formação" : "controle intermediário"}</small></div>
+              <div class="kpi-card"><span>Porte</span><b>${form.companySize.split(" ")[0]}</b><small>${form.companySize}</small></div>
+              <div class="kpi-card"><span>Setores avaliados</span><b>${profile.areas.length}</b><small>${profile.focus}</small></div>
+              <div class="kpi-card"><span>Pendências críticas</span><b>${criticalCount}</b><small>${areas}</small></div>
+              <div class="kpi-card"><span>Evidências</span><b>1</b><small>${context.authorization || "demo mockada"}</small></div>
+            </div>
+            <div class="dashboard-grid">
+              <div class="chart-panel">
+                <h2>Campos pendentes de melhoria</h2>
+                <div class="bar-chart-visual">
+                  ${dimensions.map(([label, value, level]) => `<div class="bar-metric ${level}"><i style="height:${value}%"></i><span>${label}<br>${value}%</span></div>`).join("")}
+                </div>
+              </div>
+              <div class="chart-panel">
+                <h2>Distribuição de prioridade</h2>
+                <div class="donut-wrap">
+                  <div class="donut" data-score="${score}"></div>
+                  <div class="legend-list">
+                    <div class="legend-item"><span><i style="background:#ff7b7b"></i>Crítico</span><strong>${score <= 55 ? "34%" : "18%"}</strong></div>
+                    <div class="legend-item"><span><i style="background:#ffd166"></i>Atenção</span><strong>${score <= 55 ? "34%" : "39%"}</strong></div>
+                    <div class="legend-item"><span><i style="background:#35d399"></i>Controlado</span><strong>${score <= 55 ? "32%" : "43%"}</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-grid">
+              <div class="chart-panel">
+                <h2>Mapa de setores por porte</h2>
+                <div class="area-health-map">
+                  ${profile.areas.map((area, index) => {
+                    const status = areaStatus(area, index);
+                    return `<div class="area-chip ${status}"><strong>${area}</strong><span>${areaLabel[status]}</span></div>`;
+                  }).join("")}
+                </div>
+              </div>
+              <div class="chart-panel">
+                <h2>Resumo da análise</h2>
+                <table class="compact-table">
+                  <tbody>
+                    <tr><th>Porte</th><td>${form.companySize}</td></tr>
+                    <tr><th>Dor</th><td>${pain}</td></tr>
+                    <tr><th>Impacto</th><td>${impacts}</td></tr>
+                    <tr><th>Resposta</th><td>${profile.pains[0]}; padronizar, medir e priorizar</td></tr>
+                    <tr><th>Dependência</th><td>${context.dependency || "validação humana"}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>`;
+        const demandPlan = document.getElementById("demandPlan");
+        if (demandPlan) {
+          demandPlan.innerHTML = `
+            <div class="chart-panel">
+              <h2>Plano objetivo de melhoria</h2>
+              <table class="compact-table">
+                <thead><tr><th>Prioridade</th><th>Campo</th><th>Ação</th><th>Prazo</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>${priority("alta")}</td><td>Governança</td><td>Definir responsável, política mínima e critério de aceite.</td><td>0-7d</td><td><span class="status status-yellow">pendente</span></td></tr>
+                  <tr><td>${priority("alta")}</td><td>${profile.areas[0]}</td><td>Atacar dor principal do porte: ${profile.pains[0]}.</td><td>0-7d</td><td><span class="status status-yellow">pendente</span></td></tr>
+                  <tr><td>${priority("media")}</td><td>${profile.areas[1] || "Processos"}</td><td>Padronizar o fluxo ligado à dor: ${pain}.</td><td>8-30d</td><td><span class="status status-blue">planejado</span></td></tr>
+                  <tr><td>${priority("media")}</td><td>Validação</td><td>Confirmar evidências reais somente com autorização formal.</td><td>piloto</td><td><span class="status status-blue">aguardando</span></td></tr>
+                </tbody>
+              </table>
+            </div>`;
+        }
+        document.getElementById("correlation").innerHTML = `<div class="badge">Correlação crítica identificada</div><table><thead><tr><th>Sinal</th><th>Origem</th><th>Resumo</th><th>Status</th></tr></thead><tbody><tr><td>Dor declarada</td><td>Mapa de Dores</td><td>${pain}</td><td><span class="status status-yellow">validar</span></td></tr><tr><td>Cenário macro</td><td>Stress Test</td><td>${macro[3][0]}</td><td><span class="status status-blue">simulado</span></td></tr><tr><td>Achado simulado</td><td>Auditoria</td><td>Ausência de playbook único.</td><td><span class="status status-yellow">autorizar</span></td></tr></tbody></table><div class="grid cols-3" style="margin-top:16px">${panel(`<h2>Fragilidade prioritária</h2><p>Crescimento por aquisição pode acumular complexidade operacional sem padrão comum.</p>`)}${panel(`<h2>Ação recomendada</h2><p>Criar M&A AI Integration Playbook.</p>`)}${panel(`<h2>Artefato Codex</h2><p>/playbooks/ma-ai-integration-playbook.md</p>`)}</div>`;
+        document.getElementById("score").innerHTML = panel(`<div class="issue-meta"><span class="status ${score <= 55 ? "status-yellow" : "status-green"}">${score <= 55 ? "em formação" : "intermediária"}</span>${priority("alta")}</div><h2>Score geral</h2><p style="font-size:60px;margin:10px 0;color:var(--signal);font-weight:800">${score}</p><p><strong>${score <= 55 ? "Resiliência em formação" : "Resiliência intermediária"}</strong></p><p>Score demonstrativo com base em respostas declaradas, cenários macro e achados simulados.</p>`) +
+          ["Governança de IA","Segurança","Processos críticos","Auditoria e rastreabilidade","Pessoas e competências","Infraestrutura","Integração pós-aquisição","Automação"].map((d,i)=>panel(`<h2>${d}</h2><div class="bar"><span style="width:${[40,40,40,40,40,60,40,60][i]}%"></span></div><p>Justificativa e recomendação associadas ao plano executivo.</p>`)).join("");
+        document.getElementById("plan").innerHTML = `<div class="board">${["Quick wins","Iniciativas estruturais","Dependem de autorização"].map((b,bi)=>`<div class="column"><h2><span>${b}</span><span>${actions.filter(a=>a[0]===b).length}</span></h2>${actions.filter(a=>a[0]===b).map((a,i)=>`<div class="issue"><div class="issue-key">ARO-${bi+1}${i+1}</div><div class="issue-title">${a[1]}</div><div class="issue-meta"><span class="status ${b.includes("autorização") ? "status-yellow" : "status-blue"}">${b.includes("autorização") ? "blocked" : "to do"}</span>${priority(a[1].includes("Trilha") ? "media" : "alta")}</div><p><strong>Artefato:</strong> ${a[2]}</p></div>`).join("")}</div>`).join("")}</div>`;
+        document.getElementById("backlog").innerHTML = `<table><thead><tr><th>Issue</th><th>Título</th><th>Prioridade</th><th>Status</th><th>Arquivo esperado</th><th>Critério de aceite</th></tr></thead><tbody>${actions.map((a,i)=>`<tr><td><strong>ISSUE-${String(i+1).padStart(3,"0")}</strong></td><td>${a[1]}<br><span style="color:var(--muted);font-size:12px">Origem: dor declarada + cenário macro + auditoria simulada</span></td><td>${priority(a[1].includes("Trilha") ? "media" : "alta")}</td><td><span class="status ${a[0].includes("autorização") ? "status-yellow" : "status-blue"}">${a[0].includes("autorização") ? "blocked" : "ready"}</span></td><td>${a[2]}</td><td>Arquivo criado, revisão humana definida e status de autorização indicado.</td></tr>`).join("")}</tbody></table>`;
+        document.getElementById("artifacts").innerHTML = actions.slice(0,6).map(a=>`<li>${a[2]}</li>`).join("");
+        document.getElementById("auditLog").innerHTML = ["resposta coletada","cenário selecionado","achado simulado exibido","correlação gerada","score calculado","plano criado","backlog criado","prompt Codex gerado","relatório exportado"].map(e=>panel(`<h2>${e}</h2><p>${new Date().toLocaleString("pt-BR")} — requer validação humana; autorização formal quando houver auditoria real.</p>`)).join("");
+        summaryText = `AI Resilience OS - Resumo Executivo\n\nDor principal: ${pain}.\nCenário testado: ${macro[3][0]}\nAchado simulado: ausência de playbook único de integração.\nCorrelação crítica: crescimento por aquisição pode acumular complexidade operacional sem padrão comum.\nScore geral: ${score}/100.\n\nTop 3 ações:\n1. Criar M&A AI Integration Playbook.\n2. Criar AI Decision Log.\n3. Criar Política de Uso Seguro de IA.\n\nRecomendação: executar AI Resilience Sprint de 30 dias com dados reais, autorização formal e escopo definido.`;
+        reportText = `${summaryText}\n\nAviso: esta demo usa dados mockados, não acessa sistemas reais, não executa auditoria real, não executa pentest e não afirma vulnerabilidades reais.\n\nPlano: quick wins, iniciativas estruturais e ações dependentes de autorização.\n\nPróximo passo: aprovar piloto AI Resilience Sprint.`;
+        document.getElementById("summary").textContent = summaryText;
+        document.getElementById("report").textContent = reportText;
+      }
+      function calcScore(){ return form.readiness <= 2 ? 47 : 62; }
+      async function copyText(text){ await navigator.clipboard.writeText(text); alert("Copiado."); }
+      function exportJson(){
+        const blob = new Blob([JSON.stringify({form, score: calcScore(), summaryText, reportText}, null, 2)], {type:"application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "ai-resilience-os-demo.json"; a.click();
+        URL.revokeObjectURL(url);
+      }
+      init();
+    </script>
+  </body>
+</html>
