@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ai-resilience-os": {
+      "command": "node",
+      "args": ["mcp/server.mjs"],
+      "env": {}
+    }
+  }
+}
